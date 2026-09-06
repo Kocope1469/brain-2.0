@@ -1,0 +1,16 @@
+{
+  "name": "klantenkaart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Klantenkaart - lichtgewicht CRM voor KMO's. Nul dependencies.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node --no-warnings server/index.js",
+    "dev": "node --no-warnings --watch server/index.js",
+    "seed": "node --no-warnings server/seed.js",
+    "test": "node --no-warnings --test \"test/*.test.js\""
+  }
+}
