@@ -41,7 +41,7 @@ export function toCsv(rows, columns, delimiter = ';') {
 
 /** Kolomnamen uit een geimporteerd bestand omzetten naar velden van de klantenkaart. */
 const HEADER_ALIASES = {
-  company_name: ['bedrijf', 'bedrijfsnaam', 'naam', 'klant', 'company', 'company_name', 'organisatie'],
+  name: ['bedrijf', 'bedrijfsnaam', 'naam', 'klant', 'company', 'company_name', 'organisatie'],
   contact_name: ['contact', 'contactpersoon', 'contact_name', 'aanspreekpunt'],
   email: ['email', 'e-mail', 'mail', 'emailadres', 'e-mailadres'],
   phone: ['telefoon', 'tel', 'gsm', 'phone', 'telefoonnummer'],
@@ -51,8 +51,8 @@ const HEADER_ALIASES = {
   postal_code: ['postcode', 'postal_code', 'zip'],
   city: ['gemeente', 'stad', 'plaats', 'city'],
   country: ['land', 'country'],
-  source: ['bron', 'source', 'herkomst'],
-  role: ['functie', 'rol', 'titel', 'role'],
+  lat: ['breedtegraad', 'lat', 'latitude'],
+  lon: ['lengtegraad', 'lon', 'lng', 'longitude'],
   notes: ['omschrijving', 'notitie', 'notities', 'intro', 'opmerking', 'opmerkingen', 'notes'],
   tags: ['tags', 'labels', 'tag', 'label'],
 };
@@ -78,6 +78,6 @@ export function csvToCustomers(text) {
     const obj = {};
     fields.forEach((f, i) => { if (f) obj[f] = (r[i] ?? '').trim(); });
     return obj;
-  }).filter((o) => o.company_name);
+  }).filter((o) => o.name);
   return { customers, unmapped };
 }

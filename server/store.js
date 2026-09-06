@@ -1,29 +1,34 @@
-import { validateCustomer } from './validate.js';
+import { validateCustomer, validateVisit, bucketVoor } from './validate.js';
 
-const VELDEN = ['company_name', 'contact_name', 'role', 'email', 'phone', 'website',
-  'vat_number', 'street', 'postal_code', 'city', 'country', 'source', 'notes'];
+const VELDEN = ['name', 'contact_name', 'phone', 'email', 'street', 'postal_code',
+  'city', 'country', 'vat_number', 'notes', 'lat', 'lon'];
 
 export class Store {
   constructor(db) {
     this.db = db;
   }
 
-  #tagId(name) {
-    const gevonden = this.db.prepare('SELECT id FROM tags WHERE name = ?').get(name);
-    return gevonden ? gevonden.id : this.db.prepare('INSERT INTO tags(name) VALUES(?)').run(name).lastInsertRowid;
+  // ---------- tags ----------
+
+  #tagId(naam) {
+    const gevonden = this.db.prepare('SELECT id FROM tags WHERE name = ?').get(naam);
+    return gevonden ? gevonden.id : this.db.prepare('INSERT INTO tags(name) VALUES(?)').run(naam).lastInsertRowid;
+  }
+
+  #opschonenTags() {
+    this.db.exec('DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM customer_tags)');
   }
 
   #setTags(customerId, tags) {
     this.db.prepare('DELETE FROM customer_tags WHERE customer_id = ?').run(customerId);
     const koppel = this.db.prepare('INSERT OR IGNORE INTO customer_tags(customer_id, tag_id) VALUES(?, ?)');
     for (const naam of tags) koppel.run(customerId, this.#tagId(naam));
-    this.db.exec('DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM customer_tags)');
+    this.#opschonenTags();
   }
 
   tagsFor(customerId) {
     return this.db.prepare(`
-      SELECT t.name FROM tags t
-      JOIN customer_tags ct ON ct.tag_id = t.id
+      SELECT t.name FROM tags t JOIN customer_tags ct ON ct.tag_id = t.id
       WHERE ct.customer_id = ? ORDER BY t.name`).all(customerId).map((r) => r.name);
   }
 
@@ -34,40 +39,60 @@ export class Store {
       GROUP BY t.id ORDER BY aantal DESC, t.name`).all();
   }
 
-  /** Alle kaarten, doorzoekbaar op alles wat erop staat. */
-  listCustomers({ q = '', tag = '', sort = 'naam', limit = 1000 } = {}) {
+  // ---------- klanten op de kaart ----------
+
+  #verrijk(rij) {
+    return {
+      ...rij,
+      tags: this.tagsFor(rij.id),
+      bucket: bucketVoor(rij.laatste_bezoek),
+      op_kaart: rij.lat !== null && rij.lon !== null,
+    };
+  }
+
+  /**
+   * Alle klanten met hun laatste bezoek en kleurgroep.
+   * De kaart tekent hier zijn stippen mee, dus dit moet één query blijven.
+   */
+  listCustomers({ q = '', tag = '', bucket = '', alleenOpKaart = false } = {}) {
     const where = [];
     const gebonden = [];
 
     if (q) {
-      where.push(`(company_name LIKE ? OR contact_name LIKE ? OR email LIKE ?
-                   OR city LIKE ? OR phone LIKE ? OR vat_number LIKE ? OR notes LIKE ?)`);
-      gebonden.push(...Array(7).fill(`%${q}%`));
+      where.push(`(c.name LIKE ? OR c.contact_name LIKE ? OR c.city LIKE ?
+                   OR c.postal_code LIKE ? OR c.street LIKE ? OR c.notes LIKE ?)`);
+      gebonden.push(...Array(6).fill(`%${q}%`));
     }
     if (tag) {
-      where.push('EXISTS (SELECT 1 FROM customer_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.customer_id = customers.id AND t.name = ?)');
+      where.push('EXISTS (SELECT 1 FROM customer_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.customer_id = c.id AND t.name = ?)');
       gebonden.push(tag);
     }
+    if (alleenOpKaart) where.push('c.lat IS NOT NULL AND c.lon IS NOT NULL');
 
-    const volgorde = {
-      naam: 'company_name COLLATE NOCASE ASC',
-      gemeente: 'city COLLATE NOCASE ASC, company_name COLLATE NOCASE ASC',
-      nieuw: 'created_at DESC',
-      gewijzigd: 'updated_at DESC',
-    }[sort] || 'company_name COLLATE NOCASE ASC';
-
-    gebonden.push(Math.min(Number(limit) || 1000, 5000));
     const rijen = this.db.prepare(`
-      SELECT * FROM customers
+      SELECT c.*, (SELECT MAX(v.visit_date) FROM visits v WHERE v.customer_id = c.id) AS laatste_bezoek,
+             (SELECT COUNT(*) FROM visits v WHERE v.customer_id = c.id) AS aantal_bezoeken
+      FROM customers c
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-      ORDER BY ${volgorde} LIMIT ?`).all(...gebonden);
+      ORDER BY c.name COLLATE NOCASE ASC`).all(...gebonden);
 
-    return rijen.map((r) => ({ ...r, tags: this.tagsFor(r.id) }));
+    const verrijkt = rijen.map((r) => this.#verrijk(r));
+    // filteren op kleurgroep gebeurt hier: het bereik hangt van de datum van vandaag af
+    return bucket ? verrijkt.filter((k) => k.bucket === bucket) : verrijkt;
   }
 
+  /** Eén klantdossier, inclusief alle bezoeken van recent naar oud. */
   getCustomer(id) {
-    const rij = this.db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
-    return rij ? { ...rij, tags: this.tagsFor(id) } : null;
+    const rij = this.db.prepare(`
+      SELECT c.*, (SELECT MAX(v.visit_date) FROM visits v WHERE v.customer_id = c.id) AS laatste_bezoek,
+             (SELECT COUNT(*) FROM visits v WHERE v.customer_id = c.id) AS aantal_bezoeken
+      FROM customers c WHERE c.id = ?`).get(id);
+    if (!rij) return null;
+    return {
+      ...this.#verrijk(rij),
+      visits: this.db.prepare(
+        'SELECT * FROM visits WHERE customer_id = ? ORDER BY visit_date DESC, id DESC').all(id),
+    };
   }
 
   createCustomer(input) {
@@ -99,8 +124,39 @@ export class Store {
 
   deleteCustomer(id) {
     const weg = this.db.prepare('DELETE FROM customers WHERE id = ?').run(id).changes > 0;
-    // de koppelingen vallen weg door de cascade, de tags zelf blijven anders achter
-    if (weg) this.db.exec('DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM customer_tags)');
+    if (weg) this.#opschonenTags();
     return weg;
+  }
+
+  // ---------- bezoeken ----------
+
+  addVisit(customerId, input) {
+    if (!this.db.prepare('SELECT id FROM customers WHERE id = ?').get(customerId)) {
+      return { ok: false, notFound: true };
+    }
+    const res = validateVisit(input);
+    if (!res.ok) return res;
+    const v = res.value;
+    const id = this.db.prepare(
+      'INSERT INTO visits(customer_id, visit_date, with_whom, notes) VALUES(?,?,?,?)',
+    ).run(customerId, v.visit_date, v.with_whom, v.notes).lastInsertRowid;
+    this.db.prepare("UPDATE customers SET updated_at = datetime('now') WHERE id = ?").run(customerId);
+    return { ok: true, value: this.db.prepare('SELECT * FROM visits WHERE id = ?').get(id) };
+  }
+
+  deleteVisit(id) {
+    return this.db.prepare('DELETE FROM visits WHERE id = ?').run(id).changes > 0;
+  }
+
+  /** Tellingen per kleurgroep, voor de filterknoppen boven de kaart. */
+  tellingen() {
+    const alle = this.listCustomers();
+    return {
+      totaal: alle.length,
+      recent: alle.filter((k) => k.bucket === 'recent').length,
+      tijdje: alle.filter((k) => k.bucket === 'tijdje').length,
+      lang: alle.filter((k) => k.bucket === 'lang').length,
+      zonder_stip: alle.filter((k) => !k.op_kaart).length,
+    };
   }
 }

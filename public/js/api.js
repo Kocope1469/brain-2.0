@@ -24,16 +24,18 @@ const qs = (params) => {
 };
 
 export const api = {
-  tags: () => vraag('/api/tags'),
+  overzicht: () => vraag('/api/overzicht'),
   klanten: (filters = {}) => vraag(`/api/klanten${qs(filters)}`),
   klant: (id) => vraag(`/api/klanten/${id}`),
   nieuweKlant: (data) => vraag('/api/klanten', { method: 'POST', body: data }),
   wijzigKlant: (id, data) => vraag(`/api/klanten/${id}`, { method: 'PATCH', body: data }),
   verwijderKlant: (id) => vraag(`/api/klanten/${id}`, { method: 'DELETE' }),
+  nieuwBezoek: (id, data) => vraag(`/api/klanten/${id}/bezoeken`, { method: 'POST', body: data }),
+  verwijderBezoek: (id) => vraag(`/api/bezoeken/${id}`, { method: 'DELETE' }),
+  geocode: (adres) => vraag('/api/geocode', { method: 'POST', body: { adres } }),
   importeer: (csv) => vraag('/api/klanten/import', { method: 'POST', body: { csv } }),
 };
 
-/** Voert een actie uit en toont de foutmelding als het misgaat. */
 export async function probeer(actie, succesbericht) {
   try {
     const resultaat = await actie();

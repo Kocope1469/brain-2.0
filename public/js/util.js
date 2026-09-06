@@ -5,10 +5,33 @@ export function esc(value) {
   ));
 }
 
+export const KLEUREN = { recent: '#22a559', tijdje: '#d98324', lang: '#d3453d' };
+export const BUCKETLABEL = {
+  recent: 'Recent bezocht',
+  tijdje: 'Een tijdje geleden',
+  lang: 'Lang niet bezocht',
+};
+
 export function datum(iso) {
   if (!iso) return '—';
   const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('nl-BE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export const vandaag = () => new Date().toISOString().slice(0, 10);
+
+/** "3 weken geleden" — zoals op de kaart in de schets. */
+export function geleden(iso) {
+  if (!iso) return 'nog nooit bezocht';
+  const dagen = Math.floor((Date.now() - new Date(`${String(iso).slice(0, 10)}T00:00:00`).getTime()) / 86400000);
+  if (Number.isNaN(dagen)) return iso;
+  if (dagen <= 0) return 'vandaag';
+  if (dagen === 1) return 'gisteren';
+  if (dagen < 14) return `${dagen} dagen geleden`;
+  if (dagen < 60) return `${Math.floor(dagen / 7)} weken geleden`;
+  if (dagen < 365) return `${Math.round(dagen / 30)} maanden geleden`;
+  const jaren = Math.floor(dagen / 365);
+  return `${jaren} jaar geleden`;
 }
 
 export function btwFormaat(vat) {
@@ -17,18 +40,10 @@ export function btwFormaat(vat) {
   return `BE ${v.slice(2, 6)}.${v.slice(6, 9)}.${v.slice(9)}`;
 }
 
-/** Eerste letters van maximaal twee betekenisvolle woorden: "Bakkerij Vermeulen" -> "BV". */
 export function initialen(naam) {
   const woorden = String(naam ?? '').trim().split(/\s+/)
     .filter((w) => !['de', 'het', 'een', 'van', 'der', 'den', '&', 'en'].includes(w.toLowerCase()));
   return woorden.slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
-}
-
-/** Vaste kleur per naam, zodat een kaart altijd dezelfde tint houdt. */
-export function kleurVoor(naam) {
-  let som = 0;
-  for (const teken of String(naam ?? '')) som = (som * 31 + teken.codePointAt(0)) % 360;
-  return `hsl(${som} 52% 45%)`;
 }
 
 export function toast(bericht, soort = 'ok') {
@@ -37,25 +52,21 @@ export function toast(bericht, soort = 'ok') {
   el.className = `toast ${soort === 'fout' ? 'fout' : ''}`;
   el.textContent = bericht;
   bak.append(el);
-  setTimeout(() => el.remove(), 3800);
+  setTimeout(() => el.remove(), 4000);
 }
 
-/** Opent een modaal venster. onSubmit krijgt het formulier; geef false terug om open te blijven. */
 export function modal({ titel, body, bevestig = 'Opslaan', onSubmit, breed = false }) {
   const dlg = document.getElementById('modal');
   dlg.innerHTML = `
     <form method="dialog" id="modal-form">
       <header><h2>${esc(titel)}</h2></header>
-      <div class="body">
-        <div id="modal-fout"></div>
-        ${body}
-      </div>
+      <div class="body"><div id="modal-fout"></div>${body}</div>
       <footer>
         <button class="btn" type="button" id="modal-annuleer">Annuleren</button>
         <button class="btn btn-primary" type="submit">${esc(bevestig)}</button>
       </footer>
     </form>`;
-  dlg.style[breed ? 'setProperty' : 'removeProperty']('width', 'min(820px, calc(100vw - 32px))');
+  dlg.classList.toggle('breed', breed);
 
   const form = dlg.querySelector('#modal-form');
   dlg.querySelector('#modal-annuleer').onclick = () => dlg.close();

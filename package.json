@@ -2,7 +2,7 @@
   "name": "klantenkaart",
   "version": "1.0.0",
   "private": true,
-  "description": "Klantenkaart - lichtgewicht CRM voor KMO's. Nul dependencies.",
+  "description": "Klantenkaart - al je klanten op de kaart, gekleurd naar hoe lang geleden je er langsging.",
   "type": "module",
   "engines": {
     "node": ">=22.5.0"

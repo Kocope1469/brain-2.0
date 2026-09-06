@@ -1,28 +1,39 @@
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Normaliseert een BTW-nummer: verwijdert punten, spaties en streepjes, uppercase. */
+/**
+ * Hoe lang geleden een bezoek nog "recent" heet. De grenzen bepalen de kleur
+ * van elke stip op de kaart, dus ze staan hier op één plek.
+ */
+export const DREMPELS = { recent: 30, tijdje: 90 };
+
+export const BUCKETS = ['recent', 'tijdje', 'lang'];
+
+/** In welke kleurgroep valt een klant, gegeven de datum van het laatste bezoek. */
+export function bucketVoor(laatsteBezoek, vandaag = new Date()) {
+  if (!laatsteBezoek) return 'lang';
+  const dagen = Math.floor((vandaag - new Date(`${laatsteBezoek}T00:00:00Z`)) / 86400000);
+  if (dagen <= DREMPELS.recent) return 'recent';
+  if (dagen <= DREMPELS.tijdje) return 'tijdje';
+  return 'lang';
+}
+
 export function normalizeVat(raw) {
   return String(raw ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
-/**
- * Controleert een Belgisch BTW-nummer (BE 0xxx.xxx.xxx) met de modulo-97 controle.
- * Niet-Belgische nummers worden enkel op grofweg geldige vorm gecontroleerd.
- */
+/** Belgische BTW-nummers gaan door de modulo-97-controle; andere enkel op vorm. */
 export function isValidVat(raw) {
   const vat = normalizeVat(raw);
-  if (!vat) return true; // leeg mag
+  if (!vat) return true;
   if (vat.startsWith('BE')) {
-    const digits = vat.slice(2);
-    if (!/^[01]\d{9}$/.test(digits)) return false;
-    const base = Number(digits.slice(0, 8));
-    const check = Number(digits.slice(8));
-    return 97 - (base % 97) === check;
+    const cijfers = vat.slice(2);
+    if (!/^[01]\d{9}$/.test(cijfers)) return false;
+    return 97 - (Number(cijfers.slice(0, 8)) % 97) === Number(cijfers.slice(8));
   }
   return /^[A-Z]{2}[A-Z0-9]{2,13}$/.test(vat);
 }
 
-/** Toont een BTW-nummer leesbaar: BE 0123.456.749 */
 export function formatVat(raw) {
   const vat = normalizeVat(raw);
   if (!vat.startsWith('BE') || vat.length !== 12) return vat;
@@ -30,26 +41,29 @@ export function formatVat(raw) {
   return `BE ${d.slice(0, 4)}.${d.slice(4, 7)}.${d.slice(7)}`;
 }
 
+/** Coördinaat of null. Een klant zonder stip hoort niet stiekem op 0,0 te belanden. */
+export function toCoord(waarde, max) {
+  if (waarde === null || waarde === undefined || waarde === '') return null;
+  const n = Number(String(waarde).replace(',', '.'));
+  return Number.isFinite(n) && Math.abs(n) <= max ? n : undefined; // undefined = ongeldig
+}
+
 const clean = (v, max = 500) => String(v ?? '').trim().slice(0, max);
 
 const TEKSTVELDEN = [
-  ['contact_name', 120], ['role', 120], ['phone', 40], ['website', 200],
-  ['street', 200], ['postal_code', 20], ['city', 120], ['source', 120], ['notes', 20000],
+  ['contact_name', 120], ['phone', 40], ['street', 200],
+  ['postal_code', 20], ['city', 120], ['notes', 20000],
 ];
 
-/**
- * Valideert en normaliseert wat er op een kaart komt te staan.
- * @returns {{ok: true, value: object} | {ok: false, errors: string[]}}
- */
 export function validateCustomer(input = {}, { partial = false } = {}) {
   const errors = [];
   const value = {};
   const has = (k) => Object.hasOwn(input, k);
 
-  if (!partial || has('company_name')) {
-    const naam = clean(input.company_name, 200);
-    if (!naam) errors.push('Naam is verplicht — zonder naam is het geen kaart.');
-    value.company_name = naam;
+  if (!partial || has('name')) {
+    const naam = clean(input.name, 200);
+    if (!naam) errors.push('Naam is verplicht.');
+    value.name = naam;
   }
   if (!partial || has('email')) {
     const email = clean(input.email, 200).toLowerCase();
@@ -61,16 +75,34 @@ export function validateCustomer(input = {}, { partial = false } = {}) {
     if (!isValidVat(vat)) errors.push('BTW-nummer is ongeldig.');
     value.vat_number = vat;
   }
-  if (!partial || has('country')) {
-    value.country = clean(input.country, 2).toUpperCase() || 'BE';
-  }
+  if (!partial || has('country')) value.country = clean(input.country, 2).toUpperCase() || 'BE';
   for (const [key, max] of TEKSTVELDEN) {
     if (!partial || has(key)) value[key] = clean(input[key], max);
   }
+
+  if (has('lat') || has('lon')) {
+    const lat = toCoord(input.lat, 90);
+    const lon = toCoord(input.lon, 180);
+    if (lat === undefined || lon === undefined) errors.push('Coördinaten zijn ongeldig.');
+    else if ((lat === null) !== (lon === null)) errors.push('Geef breedte- én lengtegraad, of geen van beide.');
+    else { value.lat = lat; value.lon = lon; }
+  }
+
   if (has('tags')) {
     const ruw = Array.isArray(input.tags) ? input.tags : String(input.tags ?? '').split(',');
     value.tags = [...new Set(ruw.map((t) => clean(t, 40).toLowerCase()).filter(Boolean))].slice(0, 20);
   }
 
   return errors.length ? { ok: false, errors } : { ok: true, value };
+}
+
+export function validateVisit(input = {}) {
+  const errors = [];
+  const visit_date = clean(input.visit_date, 10) || new Date().toISOString().slice(0, 10);
+  if (!DATE_RE.test(visit_date)) errors.push('Datum moet in formaat JJJJ-MM-DD staan.');
+  else if (visit_date > new Date().toISOString().slice(0, 10)) errors.push('Een bezoek kan niet in de toekomst liggen.');
+  const with_whom = clean(input.with_whom, 120);
+  const notes = clean(input.notes, 10000);
+  if (!notes && !with_whom) errors.push('Noteer met wie je sprak of waarover het ging.');
+  return errors.length ? { ok: false, errors } : { ok: true, value: { visit_date, with_whom, notes } };
 }

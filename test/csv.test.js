@@ -26,12 +26,12 @@ describe('kolommen herkennen', () => {
   test('koppelt Nederlandse en Engelse koppen aan velden', () => {
     assert.deepEqual(
       mapHeaders(['Bedrijf', 'E-mail', 'BTW-nummer', 'Gemeente', 'Onzin']),
-      ['company_name', 'email', 'vat_number', 'city', null],
+      ['name', 'email', 'vat_number', 'city', null],
     );
   });
 
   test('trekt zich niets aan van hoofdletters, spaties of een BOM', () => {
-    assert.deepEqual(mapHeaders(['﻿bedrijfsnaam', '  TELEFOON  ']), ['company_name', 'phone']);
+    assert.deepEqual(mapHeaders(['﻿bedrijfsnaam', '  TELEFOON  ']), ['name', 'phone']);
   });
 });
 
@@ -47,7 +47,7 @@ describe('CSV omzetten naar klanten', () => {
 
   test('slaat rijen zonder bedrijfsnaam over', () => {
     const { customers } = csvToCustomers('Bedrijf;E-mail\n;wees@nergens.be\nAlfa nv;a@b.be');
-    assert.deepEqual(customers.map((c) => c.company_name), ['Alfa nv']);
+    assert.deepEqual(customers.map((c) => c.name), ['Alfa nv']);
   });
 
   test('een leeg bestand levert geen klanten en geen fout', () => {
@@ -68,8 +68,8 @@ describe('CSV schrijven', () => {
   });
 
   test('wat je exporteert kun je terug inlezen', () => {
-    const origineel = [{ company_name: 'Bakkerij; "De Ster"', email: 'info@ster.be' }];
-    const csv = toCsv(origineel, [{ key: 'company_name', label: 'Bedrijf' }, { key: 'email', label: 'E-mail' }]);
+    const origineel = [{ name: 'Bakkerij; "De Ster"', email: 'info@ster.be' }];
+    const csv = toCsv(origineel, [{ key: 'name', label: 'Bedrijf' }, { key: 'email', label: 'E-mail' }]);
     assert.deepEqual(csvToCustomers(csv).customers, origineel);
   });
 });

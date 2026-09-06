@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
 import { Store } from './store.js';
 import { csvToCustomers, toCsv } from './csv.js';
-import { formatVat } from './validate.js';
+import { formatVat, DREMPELS } from './validate.js';
+import { geocode, adresRegel } from './geocode.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = join(ROOT, 'public');
@@ -16,6 +17,7 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.png': 'image/png',
   '.ico': 'image/x-icon',
 };
 
@@ -49,13 +51,14 @@ async function serveStatic(res, pathname) {
   const rel = normalize(pathname === '/' ? '/index.html' : pathname).replace(/^(\.\.[/\\])+/, '');
   const bestand = join(PUBLIC, rel);
   if (!bestand.startsWith(PUBLIC)) return fail(res, 403, 'Geen toegang.');
+  const isVendor = rel.startsWith('/vendor') || rel.startsWith('vendor');
   try {
     if (!(await stat(bestand)).isFile()) throw new Error('geen bestand');
     const data = await readFile(bestand);
     res.writeHead(200, {
       'content-type': MIME[extname(bestand)] ?? 'application/octet-stream',
       'content-length': data.length,
-      'cache-control': 'no-cache',
+      'cache-control': isVendor ? 'public, max-age=31536000, immutable' : 'no-cache',
     });
     res.end(data);
   } catch {
@@ -70,24 +73,25 @@ async function serveStatic(res, pathname) {
 }
 
 const EXPORT_KOLOMMEN = [
-  { key: 'company_name', label: 'Naam' },
+  { key: 'name', label: 'Naam' },
   { key: 'contact_name', label: 'Contactpersoon' },
-  { key: 'role', label: 'Functie' },
-  { key: 'email', label: 'E-mail' },
   { key: 'phone', label: 'Telefoon' },
-  { key: 'website', label: 'Website' },
-  { key: 'vat_number', label: 'BTW', value: (r) => formatVat(r.vat_number) },
+  { key: 'email', label: 'E-mail' },
   { key: 'street', label: 'Straat' },
   { key: 'postal_code', label: 'Postcode' },
   { key: 'city', label: 'Gemeente' },
   { key: 'country', label: 'Land' },
-  { key: 'source', label: 'Bron' },
+  { key: 'vat_number', label: 'BTW', value: (r) => formatVat(r.vat_number) },
+  { key: 'lat', label: 'Breedtegraad' },
+  { key: 'lon', label: 'Lengtegraad' },
   { key: 'tags', label: 'Tags', value: (r) => r.tags.join(', ') },
+  { key: 'laatste_bezoek', label: 'Laatste bezoek' },
+  { key: 'aantal_bezoeken', label: 'Aantal bezoeken' },
   { key: 'notes', label: 'Notities' },
 ];
 
 /** Bouwt de request-handler. De store wordt meegegeven zodat tests hem kunnen vervangen. */
-export function createApp(store) {
+export function createApp(store, { geocodeImpl = geocode } = {}) {
   return async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const pad = url.pathname;
@@ -99,27 +103,30 @@ export function createApp(store) {
     }
 
     try {
-      if (pad === '/api/tags' && methode === 'GET') {
-        return json(res, 200, store.allTags());
+      if (pad === '/api/overzicht' && methode === 'GET') {
+        return json(res, 200, { tellingen: store.tellingen(), tags: store.allTags(), drempels: DREMPELS });
       }
 
       if (pad === '/api/klanten' && methode === 'GET') {
         const p = url.searchParams;
         return json(res, 200, store.listCustomers({
-          q: p.get('q') ?? '', tag: p.get('tag') ?? '', sort: p.get('sort') ?? 'naam',
+          q: p.get('q') ?? '',
+          tag: p.get('tag') ?? '',
+          bucket: p.get('bucket') ?? '',
+          alleenOpKaart: p.get('opkaart') === '1',
         }));
       }
 
       if (pad === '/api/klanten' && methode === 'POST') {
-        const res2 = store.createCustomer(await readJson(req));
-        return res2.ok ? json(res, 201, res2.value) : fail(res, 422, res2.errors);
+        const r = store.createCustomer(await readJson(req));
+        return r.ok ? json(res, 201, r.value) : fail(res, 422, r.errors);
       }
 
       if (pad === '/api/klanten/export.csv' && methode === 'GET') {
         const rijen = store.listCustomers({ q: url.searchParams.get('q') ?? '' });
         res.writeHead(200, {
           'content-type': 'text/csv; charset=utf-8',
-          'content-disposition': `attachment; filename="klantenkaarten-${new Date().toISOString().slice(0, 10)}.csv"`,
+          'content-disposition': `attachment; filename="klanten-${new Date().toISOString().slice(0, 10)}.csv"`,
         });
         return res.end(toCsv(rijen, EXPORT_KOLOMMEN));
       }
@@ -132,27 +139,51 @@ export function createApp(store) {
         for (const [i, c] of customers.entries()) {
           const r = store.createCustomer(c);
           if (r.ok) toegevoegd++;
-          else mislukt.push({ rij: i + 2, naam: c.company_name, fouten: r.errors });
+          else mislukt.push({ rij: i + 2, naam: c.name, fouten: r.errors });
         }
         return json(res, 200, { toegevoegd, mislukt, genegeerde_kolommen: unmapped });
       }
 
-      const kaart = pad.match(/^\/api\/klanten\/(\d+)$/);
-      if (kaart) {
-        const id = Number(kaart[1]);
+      // adres -> coördinaten; faalt zacht zodat de gebruiker de stip zelf kan zetten
+      if (pad === '/api/geocode' && methode === 'POST') {
+        const body = await readJson(req);
+        const zoek = String(body.adres ?? '').trim() || adresRegel(body);
+        const treffer = await geocodeImpl(zoek);
+        return treffer
+          ? json(res, 200, treffer)
+          : json(res, 200, { gevonden: false, gezocht: zoek });
+      }
+
+      const klant = pad.match(/^\/api\/klanten\/(\d+)$/);
+      if (klant) {
+        const id = Number(klant[1]);
         if (methode === 'GET') {
           const k = store.getCustomer(id);
-          return k ? json(res, 200, k) : fail(res, 404, 'Deze kaart bestaat niet.');
+          return k ? json(res, 200, k) : fail(res, 404, 'Deze klant bestaat niet.');
         }
         if (methode === 'PATCH' || methode === 'PUT') {
           const r = store.updateCustomer(id, await readJson(req));
-          if (r.notFound) return fail(res, 404, 'Deze kaart bestaat niet.');
+          if (r.notFound) return fail(res, 404, 'Deze klant bestaat niet.');
           return r.ok ? json(res, 200, r.value) : fail(res, 422, r.errors);
         }
         if (methode === 'DELETE') {
-          return store.deleteCustomer(id) ? json(res, 200, { verwijderd: true }) : fail(res, 404, 'Deze kaart bestaat niet.');
+          return store.deleteCustomer(id) ? json(res, 200, { verwijderd: true }) : fail(res, 404, 'Deze klant bestaat niet.');
         }
         return fail(res, 405, 'Methode niet toegestaan.');
+      }
+
+      const bezoek = pad.match(/^\/api\/klanten\/(\d+)\/bezoeken$/);
+      if (bezoek && methode === 'POST') {
+        const r = store.addVisit(Number(bezoek[1]), await readJson(req));
+        if (r.notFound) return fail(res, 404, 'Deze klant bestaat niet.');
+        return r.ok ? json(res, 201, r.value) : fail(res, 422, r.errors);
+      }
+
+      const bezoekWeg = pad.match(/^\/api\/bezoeken\/(\d+)$/);
+      if (bezoekWeg && methode === 'DELETE') {
+        return store.deleteVisit(Number(bezoekWeg[1]))
+          ? json(res, 200, { verwijderd: true })
+          : fail(res, 404, 'Dit bezoek bestaat niet.');
       }
 
       return fail(res, 404, 'Onbekend eindpunt.');
@@ -164,8 +195,8 @@ export function createApp(store) {
   };
 }
 
-export function createHttpServer(store) {
-  return createServer(createApp(store));
+export function createHttpServer(store, opties) {
+  return createServer(createApp(store, opties));
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1]);
