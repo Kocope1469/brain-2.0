@@ -2,7 +2,7 @@ import { api, probeer } from './api.js';
 import { esc, toast, opties } from './util.js';
 import { Kaart } from './kaart.js';
 import { toonDossier, toonLeeg } from './dossier.js';
-import { klantFormulier, importFormulier, gebruikersFormulier } from './forms.js';
+import { klantFormulier, importFormulier, gebruikersFormulier, instellingenFormulier } from './forms.js';
 
 const el = {
   zoek: document.getElementById('zoek'),
@@ -44,9 +44,16 @@ async function ververs({ pasAan = false } = {}) {
 }
 
 async function ververTellingen() {
-  const { tellingen, tags, provincies } = await api.overzicht();
+  const { tellingen, tags, provincies, drempels } = await api.overzicht();
+  const grens = drempels ?? tellingen.drempels;
+  const uitleg = {
+    recent: `tot ${grens.recent} dagen na het laatste bezoek`,
+    tijdje: `tussen ${grens.recent} en ${grens.tijdje} dagen`,
+    lang: `langer dan ${grens.tijdje} dagen geleden, of nog nooit`,
+  };
   for (const chip of el.chips.querySelectorAll('.chip')) {
     chip.querySelector('span').textContent = tellingen[chip.dataset.bucket];
+    chip.title = uitleg[chip.dataset.bucket];
   }
   const huidige = el.tag.value;
   el.tag.innerHTML = `<option value="">Alle tags</option>${opties(tags.map((t) => [t.name, `${t.name} (${t.aantal})`]), huidige)}`;
@@ -186,6 +193,12 @@ document.getElementById('nieuw').onclick = () => klantFormulier(null, async (k) 
 });
 document.getElementById('import').onclick = () => importFormulier(() => ververs({ pasAan: true }));
 document.getElementById('gebruikers').onclick = () => gebruikersFormulier();
+document.getElementById('instellingen').onclick = () => instellingenFormulier(async () => {
+  await ververs();
+  // het dossier toont de kleurgroep ook, dus dat moet mee
+  if (staat.geselecteerd) await selecteer(staat.geselecteerd, { vlieg: false });
+  else toonLeeg(el.dossier, staat.tellingen);
+});
 document.getElementById('uitloggen').onclick = async () => {
   await api.uitloggen();
   location.replace('/login');

@@ -18,6 +18,7 @@ for (const dialect of dialecten('api')) {
       omgeving = await verseOmgeving(dialect.opties);
       server = createServer(createApp({
         store: omgeving.store, auth: omgeving.auth, pogingen: omgeving.pogingen,
+        instellingen: omgeving.instellingen,
         geocodeImpl: nepGeocode, veiligeCookie: false,
       }));
       await new Promise((r) => server.listen(0, r));
@@ -237,6 +238,44 @@ for (const dialect of dialecten('api')) {
         assert.match(tekst, /CRM-id;Naam/);
         assert.match(tekst, /West-Vlaanderen/);
         assert.match(tekst, new RegExp(dagenTerug(1)));
+      });
+
+      test('kleurgrenzen aanpassen via de API kleurt de kaart opnieuw', async () => {
+        const { body: k } = await maak({ name: 'Vier maanden stil' });
+        await vraag(`/api/klanten/${k.id}/bezoeken`, {
+          method: 'POST', body: { visit_date: dagenTerug(120), notes: 'Lang geleden' },
+        });
+        assert.equal((await vraag(`/api/klanten/${k.id}`)).body.bucket, 'lang');
+
+        const gezet = await vraag('/api/instellingen', {
+          method: 'PATCH', body: { drempel_recent: 30, drempel_tijdje: 180 },
+        });
+        assert.equal(gezet.status, 200);
+        assert.equal(gezet.body.drempel_tijdje, 180);
+
+        assert.equal((await vraag(`/api/klanten/${k.id}`)).body.bucket, 'tijdje');
+        assert.deepEqual((await vraag('/api/overzicht')).body.drempels, { recent: 30, tijdje: 180 });
+
+        await vraag('/api/instellingen', { method: 'PATCH', body: { drempel_recent: 30, drempel_tijdje: 90 } });
+      });
+
+      test('een onmogelijke grens wordt geweigerd', async () => {
+        const r = await vraag('/api/instellingen', {
+          method: 'PATCH', body: { drempel_recent: 200, drempel_tijdje: 100 },
+        });
+        assert.equal(r.status, 422);
+        assert.deepEqual((await vraag('/api/instellingen')).body,
+          { drempel_recent: 30, drempel_tijdje: 90 }, 'de oude waarden blijven staan');
+      });
+
+      test('instellingen zitten achter de login', async () => {
+        const bewaard = cookie;
+        cookie = '';
+        assert.equal((await vraag('/api/instellingen')).status, 401);
+        assert.equal((await vraag('/api/instellingen', {
+          method: 'PATCH', body: { drempel_tijdje: 900 },
+        })).status, 401);
+        cookie = bewaard;
       });
 
       test('geocoder geeft coördinaten of een nette melding', async () => {

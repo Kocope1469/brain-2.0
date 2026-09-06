@@ -233,3 +233,117 @@ async function vulGebruikers() {
     bak.textContent = err.message;
   }
 }
+
+/** Hoeveel dagen een grens is, in gewone taal. */
+function inWoorden(dagen) {
+  const n = Number(dagen);
+  if (!Number.isFinite(n) || n < 1) return '';
+  if (n < 14) return `${n} dagen`;
+  if (n < 60) return `${Math.round(n / 7)} weken`;
+  if (n % 365 === 0) return `${n / 365} jaar`;
+  const maanden = Math.round(n / 30.44);
+  return `${maanden} maand${maanden === 1 ? '' : 'en'}`;
+}
+
+const VOORSTELLEN = [
+  { label: 'Strak — je ziet klanten om de paar weken', recent: 14, tijdje: 45 },
+  { label: 'Standaard — 1 en 3 maanden', recent: 30, tijdje: 90 },
+  { label: 'Rustig — 2 en 6 maanden', recent: 60, tijdje: 180 },
+  { label: 'Ruim — 3 maanden en 1 jaar', recent: 90, tijdje: 365 },
+];
+
+/**
+ * De kleurgrenzen instellen. Dit geldt meteen voor iedereen: de waarden staan
+ * in de database, niet in de browser van wie ze aanpast.
+ */
+export function instellingenFormulier(naOpslaan = () => {}) {
+  modal({
+    titel: 'Wanneer wordt een stip oranje of rood?',
+    breed: true,
+    bevestig: 'Opslaan',
+    body: `
+      <p class="muted" style="margin-top:0">
+        De kleur van elke stip volgt uit de datum van het laatste bezoek. Hier bepaal je
+        vanaf wanneer een klant niet meer "recent" is. Je aanpassing geldt onmiddellijk
+        voor jou en je collega's; er gaan geen gegevens verloren, alleen de kleuren
+        verschuiven.
+      </p>
+
+      <div class="field">
+        <label for="f-voorstel">Snel instellen</label>
+        <select id="f-voorstel">
+          <option value="">Kies een ritme…</option>
+          ${VOORSTELLEN.map((v, i) => `<option value="${i}">${esc(v.label)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="drempels">
+        <div class="drempel groen">
+          <span class="bol" style="background:var(--groen)"></span>
+          <label for="f-drempel_recent">Groen tot en met</label>
+          <input id="f-drempel_recent" name="drempel_recent" type="number" min="1" max="3650" required>
+          <span class="eenheid">dagen</span>
+        </div>
+        <div class="drempel oranje">
+          <span class="bol" style="background:var(--oranje)"></span>
+          <label for="f-drempel_tijdje">Oranje tot en met</label>
+          <input id="f-drempel_tijdje" name="drempel_tijdje" type="number" min="2" max="3650" required>
+          <span class="eenheid">dagen</span>
+        </div>
+        <div class="drempel rood">
+          <span class="bol" style="background:var(--rood)"></span>
+          <span>Daarna rood</span>
+        </div>
+      </div>
+
+      <p class="uitleg" id="uitleg">Laden…</p>`,
+    onSubmit: async (data) => {
+      try {
+        await api.zetInstellingen(data);
+        toast('Kleurgrenzen aangepast.');
+        await naOpslaan();
+      } catch (err) {
+        toonFouten(err.fouten ?? [err.message]);
+        return false;
+      }
+    },
+  });
+
+  const recent = document.getElementById('f-drempel_recent');
+  const tijdje = document.getElementById('f-drempel_tijdje');
+  const uitleg = document.getElementById('uitleg');
+
+  const ververs = () => {
+    const r = Number(recent.value);
+    const t = Number(tijdje.value);
+    if (!(r >= 1) || !(t > r)) {
+      uitleg.textContent = '"Oranje" moet verder liggen dan "groen".';
+      uitleg.classList.add('fout');
+      return;
+    }
+    uitleg.classList.remove('fout');
+    uitleg.innerHTML = `Groen tot <strong>${esc(inWoorden(r))}</strong> na het laatste bezoek, `
+      + `oranje tot <strong>${esc(inWoorden(t))}</strong>, daarna rood.`;
+  };
+
+  recent.oninput = ververs;
+  tijdje.oninput = ververs;
+  document.getElementById('f-voorstel').onchange = (e) => {
+    const keuze = VOORSTELLEN[e.target.value];
+    if (!keuze) return;
+    recent.value = keuze.recent;
+    tijdje.value = keuze.tijdje;
+    ververs();
+  };
+
+  (async () => {
+    try {
+      const huidig = await api.instellingen();
+      recent.value = huidig.drempel_recent;
+      tijdje.value = huidig.drempel_tijdje;
+      ververs();
+    } catch (err) {
+      uitleg.textContent = err.message;
+    }
+  })();
+}

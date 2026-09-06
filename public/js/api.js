@@ -35,6 +35,8 @@ export const api = {
   verwijderGebruiker: (id) => vraag(`/api/gebruikers/${id}`, { method: 'DELETE' }),
   wijzigWachtwoord: (id, wachtwoord) => vraag(`/api/gebruikers/${id}`, { method: 'PATCH', body: { wachtwoord } }),
   overzicht: () => vraag('/api/overzicht'),
+  instellingen: () => vraag('/api/instellingen'),
+  zetInstellingen: (data) => vraag('/api/instellingen', { method: 'PATCH', body: data }),
   klanten: (filters = {}) => vraag(`/api/klanten${qs(filters)}`),
   klant: (id) => vraag(`/api/klanten/${id}`),
   nieuweKlant: (data) => vraag('/api/klanten', { method: 'POST', body: data }),

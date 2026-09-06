@@ -6,8 +6,9 @@ import { openDb } from './db.js';
 import { Store } from './store.js';
 import { Auth, leesCookie, sessieCookie } from './auth.js';
 import { zetHeaders, bezoekerIp, Pogingen } from './beveiliging.js';
+import { Instellingen } from './instellingen.js';
 import { csvToCustomers, toCsv } from './csv.js';
-import { formatVat, DREMPELS, PROVINCIES } from './validate.js';
+import { formatVat, PROVINCIES } from './validate.js';
 import { geocode, adresRegel } from './geocode.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -106,7 +107,7 @@ const EXPORT_KOLOMMEN = [
  * Bouwt de request-handler.
  * @param {object} deps store, auth, en optioneel een eigen geocoder (voor tests)
  */
-export function createApp({ store, auth, pogingen, geocodeImpl = geocode, veiligeCookie }) {
+export function createApp({ store, auth, pogingen, instellingen, geocodeImpl = geocode, veiligeCookie }) {
   const cookieVeilig = veiligeCookie ?? process.env.NODE_ENV === 'production';
 
   return async function handle(req, res) {
@@ -185,13 +186,23 @@ export function createApp({ store, auth, pogingen, geocodeImpl = geocode, veilig
       }
 
       if (pad === '/api/overzicht' && methode === 'GET') {
+        const tellingen = await store.tellingen();
         return json(res, 200, {
-          tellingen: await store.tellingen(),
+          tellingen,
           tags: await store.allTags(),
           provincies: PROVINCIES,
-          drempels: DREMPELS,
+          drempels: tellingen.drempels,
           gebruiker,
         });
+      }
+
+      if (pad === '/api/instellingen' && methode === 'GET') {
+        return json(res, 200, await instellingen.alles());
+      }
+
+      if (pad === '/api/instellingen' && methode === 'PATCH') {
+        const r = await instellingen.zet(await readJson(req), gebruiker.name || gebruiker.email);
+        return r.ok ? json(res, 200, r.value) : fail(res, 422, r.errors);
       }
 
       if (pad === '/api/gebruikers' && methode === 'GET') {
@@ -305,9 +316,13 @@ export async function bouwApp(opties = {}) {
   const auth = new Auth(db);
   const store = new Store(db);
   const pogingen = new Pogingen(db);
+  const instellingen = new Instellingen(db);
   await auth.ruimVervallenSessies();
   await pogingen.opruimen();
-  return { db, store, auth, pogingen, handle: createApp({ store, auth, pogingen, ...opties }) };
+  return {
+    db, store, auth, pogingen, instellingen,
+    handle: createApp({ store, auth, pogingen, instellingen, ...opties }),
+  };
 }
 
 export async function createHttpServer(opties = {}) {

@@ -304,3 +304,23 @@ body.op-login { display: grid; place-items: center; padding: 24px 16px; }
   .balk { padding-top: max(12px, env(safe-area-inset-top)); }
   .toasts { bottom: max(16px, env(safe-area-inset-bottom)); }
 }
+
+/* ---------- kleurgrenzen instellen ---------- */
+
+.drempels { display: grid; gap: 10px; margin: 4px 0 14px; }
+.drempel {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel-2);
+}
+.drempel label { margin: 0; font-size: .9rem; font-weight: 550; color: var(--ink); }
+.drempel input { width: 92px; flex: none; }
+.drempel .eenheid { color: var(--ink-3); font-size: .88rem; }
+.drempel .bol { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.drempel.rood { color: var(--ink-2); font-size: .9rem; }
+
+.uitleg {
+  margin: 0; padding: 11px 13px; border-radius: 9px;
+  background: var(--accent-soft); color: var(--ink); font-size: .89rem;
+}
+.uitleg.fout { background: var(--rood-soft); color: var(--rood); }

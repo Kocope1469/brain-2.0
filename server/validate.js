@@ -2,8 +2,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Hoe lang geleden een bezoek nog "recent" heet. De grenzen bepalen de kleur
- * van elke stip op de kaart, dus ze staan hier op één plek.
+ * Terugvalwaarden voor de kleurgrenzen. Wat er echt gebruikt wordt, staat in de
+ * database en is via Instellingen aan te passen — zie server/instellingen.js.
  */
 export const DREMPELS = { recent: 30, tijdje: 90 };
 
@@ -39,12 +39,15 @@ export function provincieVoor(postcode) {
   return POSTCODEREEKSEN.find(([van, tot]) => n >= van && n <= tot)?.[2] ?? '';
 }
 
-/** In welke kleurgroep valt een klant, gegeven de datum van het laatste bezoek. */
-export function bucketVoor(laatsteBezoek, vandaag = new Date()) {
+/**
+ * In welke kleurgroep valt een klant, gegeven de datum van het laatste bezoek.
+ * @param {object} [drempels] grenzen in dagen; standaard die uit DREMPELS
+ */
+export function bucketVoor(laatsteBezoek, vandaag = new Date(), drempels = DREMPELS) {
   if (!laatsteBezoek) return 'lang';
   const dagen = Math.floor((vandaag - new Date(`${laatsteBezoek}T00:00:00Z`)) / 86400000);
-  if (dagen <= DREMPELS.recent) return 'recent';
-  if (dagen <= DREMPELS.tijdje) return 'tijdje';
+  if (dagen <= drempels.recent) return 'recent';
+  if (dagen <= drempels.tijdje) return 'tijdje';
   return 'lang';
 }
 

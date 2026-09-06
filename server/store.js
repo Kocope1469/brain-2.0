@@ -1,5 +1,6 @@
 import { nu } from './db.js';
 import { validateCustomer, validateVisit, bucketVoor, provincieVoor } from './validate.js';
+import { Instellingen } from './instellingen.js';
 
 const VELDEN = ['external_id', 'name', 'contact_name', 'phone', 'email', 'street',
   'postal_code', 'city', 'country', 'vat_number', 'notes', 'lat', 'lon'];
@@ -11,6 +12,7 @@ const IMPORT_VELDEN = ['name', 'contact_name', 'phone', 'email', 'street',
 export class Store {
   constructor(db) {
     this.db = db;
+    this.instellingen = new Instellingen(db);
   }
 
   // ---------- tags ----------
@@ -45,14 +47,14 @@ export class Store {
 
   // ---------- klanten ----------
 
-  #verrijk(rij, tags) {
+  #verrijk(rij, tags, drempels) {
     return {
       ...rij,
       lat: rij.lat === null ? null : Number(rij.lat),
       lon: rij.lon === null ? null : Number(rij.lon),
       aantal_bezoeken: Number(rij.aantal_bezoeken ?? 0),
       tags,
-      bucket: bucketVoor(rij.laatste_bezoek),
+      bucket: bucketVoor(rij.laatste_bezoek, new Date(), drempels),
       provincie: provincieVoor(rij.postal_code),
       op_kaart: rij.lat !== null && rij.lon !== null,
     };
@@ -94,7 +96,8 @@ export class Store {
       ORDER BY LOWER(c.name) ASC`, gebonden);
 
     const tagsPer = await this.#tagsPerKlant(rijen.map((r) => r.id));
-    let klanten = rijen.map((r) => this.#verrijk(r, tagsPer.get(r.id) ?? []));
+    const drempels = await this.instellingen.drempels();
+    let klanten = rijen.map((r) => this.#verrijk(r, tagsPer.get(r.id) ?? [], drempels));
     // kleurgroep en provincie worden in JavaScript bepaald: de eerste hangt van
     // de datum van vandaag af, de tweede van de postcodereeks
     if (bucket) klanten = klanten.filter((k) => k.bucket === bucket);
@@ -110,7 +113,7 @@ export class Store {
     if (!rij) return null;
     const tags = (await this.#tagsPerKlant([id])).get(id) ?? [];
     return {
-      ...this.#verrijk(rij, tags),
+      ...this.#verrijk(rij, tags, await this.instellingen.drempels()),
       visits: await this.db.all(
         'SELECT * FROM visits WHERE customer_id = ? ORDER BY visit_date DESC, id DESC', [id]),
     };
@@ -248,6 +251,7 @@ export class Store {
 
   async tellingen() {
     const alle = await this.listCustomers();
+    const drempels = await this.instellingen.drempels();
     const perProvincie = {};
     for (const k of alle) if (k.provincie) perProvincie[k.provincie] = (perProvincie[k.provincie] ?? 0) + 1;
     return {
@@ -257,6 +261,7 @@ export class Store {
       lang: alle.filter((k) => k.bucket === 'lang').length,
       zonder_stip: alle.filter((k) => !k.op_kaart).length,
       per_provincie: Object.entries(perProvincie).sort((a, b) => b[1] - a[1]),
+      drempels,
     };
   }
 }

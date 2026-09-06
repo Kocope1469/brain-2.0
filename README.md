@@ -13,6 +13,7 @@ baan bent: je staat bij een klant en ziet meteen wie er nog in de buurt zit.
 - **Kaart** met een stip per klant, kleur volgt automatisch uit het laatste bezoek
 - **Zoeken** op naam, contactpersoon, gemeente, postcode en notities
 - **Filters** op laatste bezoek (drie knoppen), regio (provincie) en tag
+- **Kleurgrenzen zelf instelbaar** — bepaal of rood na 3 maanden begint of na 6
 - **Klantdossier** met bedrijfsgegevens en een tijdlijn van bezoeken: datum, met wie,
   en wat er besproken is
 - **CSV-import** uit je CRM die je zo vaak mag herhalen als je wil — bezoekverslagen
@@ -36,7 +37,7 @@ van dat bestand.
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 94 tests op SQLite
+npm test         # 113 tests op SQLite
 ```
 
 ## Online zetten op Vercel — stap voor stap
@@ -92,6 +93,31 @@ hoe dat herkennen werkt.
 
 *Settings → Domains* in Vercel, vul je domeinnaam in en volg de instructies die er
 verschijnen. Vercel regelt het beveiligingscertificaat zelf.
+
+## De kleurgrenzen instellen
+
+Standaard is een klant groen tot 30 dagen na het laatste bezoek, oranje tot 90 dagen,
+daarna rood. Past dat niet bij jouw ritme — een voederleverancier ziet zijn klanten
+nu eenmaal vaker dan een machineverkoper — dan pas je het aan via **Filter →
+Kleurgrenzen**.
+
+Je kunt kiezen uit vier voorstellen (van "strak: 2 en 6 weken" tot "ruim: 3 maanden
+en 1 jaar") of zelf twee getallen invullen. Onderaan het venster staat in gewone taal
+wat je keuze betekent.
+
+Een paar dingen die belangrijk zijn:
+
+- **De instelling staat in de database, niet in de browser.** Pas jij ze aan, dan zien
+  je collega's meteen dezelfde kleuren. Er is dus één waarheid, geen ruzie over wie
+  wat ziet.
+- **Er gaat niets verloren.** Alleen de kleuren verschuiven; klanten, bezoeken en
+  notities blijven exact zoals ze waren. Zet je het terug, dan zijn de oude kleuren
+  er weer.
+- **Onmogelijke waarden worden geweigerd.** "Oranje" moet verder liggen dan "groen",
+  en de app zegt het als dat niet zo is in plaats van iets raars te doen.
+- **Nooit bezochte klanten blijven altijd rood**, welke grens je ook kiest. Dat is
+  het punt van de kleur.
+- De filterknoppen boven de kaart tonen bij het aanwijzen wat de huidige grenzen zijn.
 
 ## Hoe de CSV-import je gegevens beschermt
 
@@ -171,8 +197,7 @@ deze beschermingen wegneemt.
 
 **Bezoeken bepalen de kleur, niets anders.** Geen statusveld dat je met de hand moet
 bijhouden en dus na drie weken liegt. Noteer je een bezoek, dan wordt de stip groen;
-doe je niets, dan wordt hij vanzelf rood. Grenzen: 30 dagen groen, 90 dagen oranje,
-daarna rood. Aan te passen in `server/validate.js` bij `DREMPELS`.
+doe je niets, dan wordt hij vanzelf rood.
 
 **De regio komt uit de postcode.** Geen extra veld om in te vullen: de Belgische
 postcodereeksen bepalen de provincie. Dat werkt ook voor klanten die je uit het CRM
@@ -203,12 +228,13 @@ server/
   store.js       alle queries en de import — de enige plek met SQL
   auth.js        wachtwoorden, sessies, gebruikers
   validate.js    validatie, BTW, coördinaten, kleurgroepen, provincies
+  instellingen.js  de kleurgrenzen, aanpasbaar zonder deploy
   geocode.js     adres naar coördinaten, faalt zacht
   csv.js         CSV lezen en schrijven
   seed.js        voorbeeldklanten
 public/          de interface: kaart, dossier, formulieren, inlogpagina, iconen
   beveiliging.js hashes, sessietokens, inlogpogingen, headers
-test/            157 tests, die allemaal op beide databases draaien
+test/            186 tests, die allemaal op beide databases draaien
 ```
 
 ## Testen
