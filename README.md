@@ -1,16 +1,20 @@
 # Klantenkaart
 
-Een klantenkaart voor KMO's: per klant één scherm met wie ze zijn, wat je met hen
-besproken hebt, wat het opgeleverd heeft en wat je nog moet doen. Geen abonnement,
-geen cloud, geen dertig velden die je nooit invult.
+Eén kaart per klant. Je zoekt iemand op, klikt de kaart open, en ziet in één
+oogopslag alles wat je over hen weet — contactgegevens, adres, BTW-nummer en je
+eigen notities. Meer niet.
 
-**Nul dependencies.** Node 22 heeft SQLite ingebouwd; de rest is standaardbibliotheek,
-vanilla JS en CSS. Geen `npm install`, geen buildstap, geen lockfile die verrot.
+Dit is **geen CRM**. Er zitten geen pipelines, taken, omzetrapporten of
+opvolgingsprocessen in, en die komen er ook niet in. Een kaartenbak die je
+openslaat, niet een systeem dat je moet onderhouden.
+
+**Nul dependencies.** Node 22 heeft SQLite ingebouwd; de rest is
+standaardbibliotheek, vanilla JS en CSS. Geen `npm install`, geen buildstap.
 
 ## Starten
 
 ```bash
-npm run seed     # optioneel: vult de database met vijf voorbeeldklanten
+npm run seed     # optioneel: vijf ingevulde voorbeeldkaarten
 npm start        # http://localhost:3000
 ```
 
@@ -18,59 +22,51 @@ Verder:
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 75 tests, ~0,3s
+npm test         # 50 tests, ~0,3s
 ```
 
-De database staat in `data/klantenkaart.db` en staat in `.gitignore`. Wil je hem
-elders? Zet `KLANTENKAART_DB=/pad/naar/db`. Andere poort: `PORT=8080`.
-Een back-up is een kopie van dat ene bestand.
+De database is één bestand: `data/klantenkaart.db` (staat in `.gitignore`).
+Een back-up is een kopie van dat bestand. Elders bewaren: `KLANTENKAART_DB=/pad/db`.
+Andere poort: `PORT=8080`.
 
-## Wat het doet
+## Twee schermen, meer is het niet
 
-**Dashboard** — klanten per status, omzet dit jaar, openstaande offertes, taken over
-de datum, en het onderdeel dat er echt toe doet: *te lang stil* — actieve klanten en
-prospects waarmee je 60+ dagen geen contact had. Dat is waar geld weglekt.
+**De kaartenbak** — alle klanten als kaartje naast elkaar. Eén zoekveld dat door
+*alles* zoekt wat op de kaarten staat, notities inbegrepen. Dat is het punt: je
+weet nog dat iemand "iets met scholen" deed maar niet meer hoe hij heette, en dan
+vind je hem terug. Filteren op tag, sorteren op naam, gemeente of laatst gewijzigd.
 
-**Klantenlijst** — zoeken over naam, contactpersoon, e-mail, gemeente, telefoon en
-BTW-nummer. Filteren op status en tag, sorteren op naam, laatste contact, omzet of
-datum van aanmaak.
+**De kaart** — één klant op één blad: naam, contactpersoon en functie, telefoon,
+e-mail, website, adres, BTW-nummer, hoe ze binnenkwamen, tags, en een vrij
+notitieveld voor alles wat je nergens anders kwijt kunt. Wie beslist er echt,
+wanneer bel je hem best, wat is de voorgeschiedenis.
 
-**De klantenkaart zelf** — vier blokken op één scherm:
-- *Gegevens*: contact, adres, BTW-nummer, website, hoe de klant binnenkwam, en een
-  vrij tekstveld voor de context die je nergens anders kwijt kunt.
-- *Contactmomenten*: chronologische tijdlijn van telefoons, mails, bezoeken,
-  offertes en klachten. In twee kliks toegevoegd, onderaan het blok.
-- *Opdrachten*: offertes en werk met bedrag en status. Omzet telt enkel gewonnen,
-  gefactureerde en betaalde opdrachten — een offerte is geen omzet.
-- *Opvolging*: de volgende actie, met vervaldatum. Over de datum kleurt rood.
+Knop **Afdrukken** geeft de kaart alleen — zonder menu, knoppen of achtergrond.
 
-**Opvolging** — alle openstaande taken over alle klanten heen, oudste eerst. De
-rode teller in het menu telt wat over de datum is.
-
-**Import en export** — CSV in beide richtingen. De import herkent zowel Nederlandse
-als Engelse kolomnamen (`Bedrijf`, `E-mail`, `BTW`, `Gemeente`, …), zowel komma's
-als de puntkomma van Excel NL/BE, en rapporteert per rij wat mislukte in plaats van
-er stilletjes de helft te laten vallen. De export begint met een BOM zodat Excel de
-accenten niet verminkt, en kan zo weer geïmporteerd worden.
+Daarnaast: CSV eruit, CSV erin. De import herkent Nederlandse en Engelse
+kolomnamen, komma's zowel als de puntkomma van Excel NL/BE, en zegt per rij wat er
+mislukte in plaats van stilletjes de helft te laten vallen.
 
 ## Keuzes die bewust gemaakt zijn
 
+**Notities zijn één vrij tekstveld, geen tijdlijn.** Een tijdlijn met contactsoorten
+en datums is CRM-gedrag: je moet hem bijhouden, anders is hij misleidend. Een
+notitieveld dat je bijwerkt wanneer je er zin in hebt, blijft altijd waar.
+
+**Zoeken gaat ook door de notities.** Anders is het notitieveld een gat waar
+informatie in verdwijnt.
+
 **BTW-nummers worden echt gecontroleerd.** Een Belgisch nummer moet door de
-modulo-97-controle: `BE0123456749` mag, `BE0123456748` niet. Formaat maakt niet uit
-— `be 0123.456.749` wordt genormaliseerd. Buitenlandse nummers worden enkel op vorm
-gecontroleerd, want elk land heeft zijn eigen regels.
+modulo-97-controle: `BE0123456749` mag, `BE0123456748` niet. Formaat maakt niet uit —
+`be 0123.456.749` wordt genormaliseerd. Buitenlandse nummers alleen op vorm, want
+elk land heeft zijn eigen regels.
 
-**Bedragen zijn hele centen, geen floats.** `1.250,50`, `1250.50` en `€ 2.000`
-worden alle drie correct gelezen; `€ 2.000` is tweeduizend euro, niet twee.
-Nooit een afrondingsfout in je omzetcijfer.
+**Validatie zit op de server.** De API is de waarheid; de interface is maar één
+manier om hem te gebruiken.
 
-**Validatie zit op de server, niet in het formulier.** De API is de waarheid; de
-interface is maar één manier om hem te gebruiken. Wat je via `curl` niet stuk krijgt,
-krijgt een gebruiker ook niet stuk.
-
-**Verwijderen verwijdert echt.** Foreign keys staan aan met `ON DELETE CASCADE`: een
-klant weg betekent zijn contactmomenten, opdrachten en taken weg. Geen weesrecords.
-Wil je een klant bewaren maar uit de lijst hebben: zet hem op `archived`.
+**Geen status, geen archief, geen "klanttype".** Dat zijn velden die je één keer
+invult en daarna nooit meer bijwerkt, en dan lieg je tegen jezelf. Wil je klanten
+groeperen: gebruik tags.
 
 ## Structuur
 
@@ -79,36 +75,29 @@ server/
   index.js     HTTP-server, routes, statische bestanden
   db.js        SQLite-schema en verbinding
   store.js     alle queries — de enige plek waar SQL staat
-  validate.js  validatie en normalisatie (BTW, bedragen, datums)
+  validate.js  validatie en normalisatie (BTW, e-mail, tags)
   csv.js       CSV lezen en schrijven
-  seed.js      voorbeelddata
+  seed.js      voorbeeldkaarten
 public/
   index.html   de schil
-  css/app.css  volledige stijl, licht en donker
-  js/          api.js, util.js, forms.js, views/
-test/          75 tests: validatie, store, csv, en de API end-to-end
+  css/app.css  volledige stijl, licht, donker en afdruk
+  js/          api.js, util.js, forms.js, views/kaartenbak.js, views/kaart.js
+test/          50 tests: validatie, kaarten, en de API end-to-end
 ```
 
 ## API
 
 Alles onder `/api`. JSON in, JSON uit. Fouten komen terug als
-`{"errors": ["Bedrijfsnaam is verplicht."]}` met status 422.
+`{"errors": ["Naam is verplicht — zonder naam is het geen kaart."]}` met status 422.
 
 | Methode | Pad | Wat |
 | --- | --- | --- |
-| `GET` | `/api/klanten?q=&status=&tag=&sort=` | lijst met omzet, laatste contact en open taken |
-| `POST` | `/api/klanten` | nieuwe klant |
-| `GET` | `/api/klanten/:id` | volledige kaart met tijdlijn, opdrachten en taken |
+| `GET` | `/api/klanten?q=&tag=&sort=` | alle kaarten, gefilterd |
+| `POST` | `/api/klanten` | nieuwe kaart |
+| `GET` | `/api/klanten/:id` | één kaart |
 | `PATCH` | `/api/klanten/:id` | gedeeltelijk bijwerken |
-| `DELETE` | `/api/klanten/:id` | klant en alles eronder |
-| `POST` | `/api/klanten/:id/contact` | contactmoment |
-| `POST` | `/api/klanten/:id/opdrachten` | opdracht of offerte |
-| `POST` | `/api/klanten/:id/taken` | taak |
-| `PATCH` | `/api/taken/:id` | afvinken (`{"done": true}`) |
-| `DELETE` | `/api/{contact,opdrachten,taken}/:id` | onderdeel verwijderen |
-| `GET` | `/api/taken` | alle open taken over alle klanten |
-| `GET` | `/api/stats` | dashboardcijfers |
-| `GET` | `/api/meta` | statussen, contactsoorten, bestaande tags |
+| `DELETE` | `/api/klanten/:id` | kaart verwijderen |
+| `GET` | `/api/tags` | bestaande tags met aantallen |
 | `GET` | `/api/klanten/export.csv` | export |
 | `POST` | `/api/klanten/import` | import (`{"csv": "..."}`) |
 
@@ -116,6 +105,6 @@ Alles onder `/api`. JSON in, JSON uit. Fouten komen terug als
 
 Er zit **geen authenticatie** in. Op je eigen machine of in je eigen netwerk is dat
 prima. Zodra dit publiek bereikbaar is, kan iedereen je volledige klantenbestand
-lezen, aanpassen en exporteren — en dat is persoonsgegevens. Zet er dan minstens
+lezen, aanpassen en exporteren — en dat zijn persoonsgegevens. Zet er dan minstens
 een login en HTTPS voor. Dat is bewust niet meegeleverd: half werkende
 authenticatie is gevaarlijker dan duidelijk géén.

@@ -9,8 +9,9 @@ async function vraag(pad, opties = {}) {
   const tekst = await res.text();
   const data = tekst ? JSON.parse(tekst) : null;
   if (!res.ok) {
-    const err = new Error((data?.errors ?? ['Er ging iets mis.'])[0]);
-    err.fouten = data?.errors ?? ['Er ging iets mis.'];
+    const fouten = data?.errors ?? ['Er ging iets mis.'];
+    const err = new Error(fouten[0]);
+    err.fouten = fouten;
     err.status = res.status;
     throw err;
   }
@@ -23,19 +24,12 @@ const qs = (params) => {
 };
 
 export const api = {
-  meta: () => vraag('/api/meta'),
-  stats: () => vraag('/api/stats'),
+  tags: () => vraag('/api/tags'),
   klanten: (filters = {}) => vraag(`/api/klanten${qs(filters)}`),
   klant: (id) => vraag(`/api/klanten/${id}`),
   nieuweKlant: (data) => vraag('/api/klanten', { method: 'POST', body: data }),
   wijzigKlant: (id, data) => vraag(`/api/klanten/${id}`, { method: 'PATCH', body: data }),
   verwijderKlant: (id) => vraag(`/api/klanten/${id}`, { method: 'DELETE' }),
-  contact: (id, data) => vraag(`/api/klanten/${id}/contact`, { method: 'POST', body: data }),
-  opdracht: (id, data) => vraag(`/api/klanten/${id}/opdrachten`, { method: 'POST', body: data }),
-  taak: (id, data) => vraag(`/api/klanten/${id}/taken`, { method: 'POST', body: data }),
-  taken: () => vraag('/api/taken'),
-  vinkTaak: (id, done) => vraag(`/api/taken/${id}`, { method: 'PATCH', body: { done } }),
-  verwijder: (soort, id) => vraag(`/api/${soort}/${id}`, { method: 'DELETE' }),
   importeer: (csv) => vraag('/api/klanten/import', { method: 'POST', body: { csv } }),
 };
 

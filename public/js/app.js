@@ -1,61 +1,36 @@
-import { api } from './api.js';
 import { esc, toast } from './util.js';
-import { klantFormulier, importFormulier } from './forms.js';
-import { dashboardView } from './views/dashboard.js';
-import { klantenView } from './views/klanten.js';
-import { klantView, klantNietGevonden } from './views/klant.js';
-import { takenView } from './views/taken.js';
+import { kaartFormulier, importFormulier } from './forms.js';
+import { kaartenbakView } from './views/kaartenbak.js';
+import { kaartView, kaartNietGevonden } from './views/kaart.js';
 
 const view = document.getElementById('view');
 
-/** Hash-routing: #/ , #/klanten , #/klant/12 , #/taken */
+/** Twee schermen: de kaartenbak (#/) en één kaart (#/kaart/12). */
 async function route() {
   const [deel = '', param = ''] = location.hash.replace(/^#\/?/, '').split('/');
-  markeerNav(deel);
+  document.body.classList.toggle('op-kaart', deel === 'kaart');
 
   try {
-    if (deel === 'klanten') await klantenView(view);
-    else if (deel === 'taken') await takenView(view);
-    else if (deel === 'klant' && param) {
+    if (deel === 'kaart' && param) {
       try {
-        await klantView(view, Number(param));
+        await kaartView(view, Number(param));
       } catch (err) {
-        if (err.status === 404) return klantNietGevonden(view, err);
+        if (err.status === 404) return kaartNietGevonden(view, err);
         throw err;
       }
-    } else await dashboardView(view);
+    } else {
+      await kaartenbakView(view);
+    }
   } catch (err) {
-    view.innerHTML = `<div class="card"><p class="leeg">Kon deze pagina niet laden.<br>
-      <span class="muted">${esc(err.message)}</span></p></div>`;
+    view.innerHTML = `<p class="leeg">Kon dit niet laden.<br><span class="muted">${esc(err.message)}</span></p>`;
     toast(err.message, 'fout');
-  }
-  await ververTaakteller();
-}
-
-function markeerNav(deel) {
-  // een klantenkaart hoort onder Klanten, niet onder Dashboard
-  const actief = deel === 'klant' ? 'klanten' : (['klanten', 'taken'].includes(deel) ? deel : '');
-  for (const a of document.querySelectorAll('#nav a')) {
-    a.classList.toggle('active', a.dataset.route === actief);
-  }
-}
-
-/** Rode teller naast "Opvolging" met wat over de datum is. */
-async function ververTaakteller() {
-  const pill = document.getElementById('nav-taken');
-  try {
-    const stats = await api.stats();
-    pill.textContent = stats.taken_te_laat;
-    pill.hidden = stats.taken_te_laat === 0;
-  } catch {
-    pill.hidden = true;
   }
 }
 
 document.getElementById('btn-nieuw').onclick = () =>
-  klantFormulier(null, (k) => { location.hash = `#/klant/${k.id}`; });
+  kaartFormulier(null, (k) => { location.hash = `#/kaart/${k.id}`; });
 document.getElementById('btn-import').onclick = () =>
-  importFormulier(() => { location.hash = '#/klanten'; route(); });
+  importFormulier(() => { location.hash = '#/'; route(); });
 
 addEventListener('hashchange', route);
 route();

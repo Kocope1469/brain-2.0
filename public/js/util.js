@@ -5,32 +5,10 @@ export function esc(value) {
   ));
 }
 
-export const geld = (cents) => (Number(cents || 0) / 100).toLocaleString('nl-BE', {
-  style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
-});
-
-export const geldExact = (cents) => (Number(cents || 0) / 100).toLocaleString('nl-BE', {
-  style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
-});
-
 export function datum(iso) {
   if (!iso) return '—';
   const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('nl-BE', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-export const vandaag = () => new Date().toISOString().slice(0, 10);
-
-/** "3 dagen geleden" / "nog nooit" — leesbaarder dan een kale datum in een overzicht. */
-export function geleden(iso) {
-  if (!iso) return 'nog geen contact';
-  const dagen = Math.floor((Date.now() - new Date(`${String(iso).slice(0, 10)}T00:00:00`).getTime()) / 86400000);
-  if (Number.isNaN(dagen)) return iso;
-  if (dagen <= 0) return 'vandaag';
-  if (dagen === 1) return 'gisteren';
-  if (dagen < 31) return `${dagen} dagen geleden`;
-  if (dagen < 365) return `${Math.floor(dagen / 30)} maand${Math.floor(dagen / 30) === 1 ? '' : 'en'} geleden`;
-  return `${Math.floor(dagen / 365)} jaar geleden`;
 }
 
 export function btwFormaat(vat) {
@@ -39,16 +17,30 @@ export function btwFormaat(vat) {
   return `BE ${v.slice(2, 6)}.${v.slice(6, 9)}.${v.slice(9)}`;
 }
 
+/** Eerste letters van maximaal twee betekenisvolle woorden: "Bakkerij Vermeulen" -> "BV". */
+export function initialen(naam) {
+  const woorden = String(naam ?? '').trim().split(/\s+/)
+    .filter((w) => !['de', 'het', 'een', 'van', 'der', 'den', '&', 'en'].includes(w.toLowerCase()));
+  return woorden.slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+}
+
+/** Vaste kleur per naam, zodat een kaart altijd dezelfde tint houdt. */
+export function kleurVoor(naam) {
+  let som = 0;
+  for (const teken of String(naam ?? '')) som = (som * 31 + teken.codePointAt(0)) % 360;
+  return `hsl(${som} 52% 45%)`;
+}
+
 export function toast(bericht, soort = 'ok') {
-  const box = document.getElementById('toasts');
+  const bak = document.getElementById('toasts');
   const el = document.createElement('div');
   el.className = `toast ${soort === 'fout' ? 'fout' : ''}`;
   el.textContent = bericht;
-  box.append(el);
+  bak.append(el);
   setTimeout(() => el.remove(), 3800);
 }
 
-/** Opent een modaal venster. onSubmit krijgt het formulier; geef true terug om te sluiten. */
+/** Opent een modaal venster. onSubmit krijgt het formulier; geef false terug om open te blijven. */
 export function modal({ titel, body, bevestig = 'Opslaan', onSubmit, breed = false }) {
   const dlg = document.getElementById('modal');
   dlg.innerHTML = `
@@ -59,12 +51,11 @@ export function modal({ titel, body, bevestig = 'Opslaan', onSubmit, breed = fal
         ${body}
       </div>
       <footer>
-        <button class="btn" value="annuleer" type="button" id="modal-annuleer">Annuleren</button>
-        <button class="btn btn-primary" value="ok" type="submit">${esc(bevestig)}</button>
+        <button class="btn" type="button" id="modal-annuleer">Annuleren</button>
+        <button class="btn btn-primary" type="submit">${esc(bevestig)}</button>
       </footer>
     </form>`;
-  if (breed) dlg.style.width = 'min(860px, calc(100vw - 32px))';
-  else dlg.style.removeProperty('width');
+  dlg.style[breed ? 'setProperty' : 'removeProperty']('width', 'min(820px, calc(100vw - 32px))');
 
   const form = dlg.querySelector('#modal-form');
   dlg.querySelector('#modal-annuleer').onclick = () => dlg.close();
@@ -86,18 +77,15 @@ export function modal({ titel, body, bevestig = 'Opslaan', onSubmit, breed = fal
 }
 
 export function toonFouten(fouten) {
-  const box = document.getElementById('modal-fout');
-  if (!box) return toast(fouten.join(' '), 'fout');
-  box.innerHTML = `<div class="foutmelding"><ul>${fouten.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>`;
-  box.scrollIntoView({ block: 'nearest' });
+  const bak = document.getElementById('modal-fout');
+  if (!bak) return toast(fouten.join(' '), 'fout');
+  bak.innerHTML = `<div class="foutmelding"><ul>${fouten.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>`;
+  bak.scrollIntoView({ block: 'nearest' });
 }
 
-/** Vult een <select> met opties. */
 export function opties(lijst, geselecteerd) {
   return lijst.map((o) => {
     const [waarde, label] = Array.isArray(o) ? o : [o, o];
     return `<option value="${esc(waarde)}"${waarde === geselecteerd ? ' selected' : ''}>${esc(label)}</option>`;
   }).join('');
 }
-
-export const hoofdletter = (s) => String(s ?? '').charAt(0).toUpperCase() + String(s ?? '').slice(1);

@@ -51,9 +51,9 @@ const HEADER_ALIASES = {
   postal_code: ['postcode', 'postal_code', 'zip'],
   city: ['gemeente', 'stad', 'plaats', 'city'],
   country: ['land', 'country'],
-  status: ['status'],
   source: ['bron', 'source', 'herkomst'],
-  intro: ['omschrijving', 'notitie', 'notities', 'intro', 'opmerking', 'opmerkingen'],
+  role: ['functie', 'rol', 'titel', 'role'],
+  notes: ['omschrijving', 'notitie', 'notities', 'intro', 'opmerking', 'opmerkingen', 'notes'],
   tags: ['tags', 'labels', 'tag', 'label'],
 };
 
