@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
 import { Store } from './store.js';
 import { Auth, leesCookie, sessieCookie } from './auth.js';
+import { zetHeaders, bezoekerIp, Pogingen } from './beveiliging.js';
 import { csvToCustomers, toCsv } from './csv.js';
 import { formatVat, DREMPELS, PROVINCIES } from './validate.js';
 import { geocode, adresRegel } from './geocode.js';
@@ -105,13 +106,14 @@ const EXPORT_KOLOMMEN = [
  * Bouwt de request-handler.
  * @param {object} deps store, auth, en optioneel een eigen geocoder (voor tests)
  */
-export function createApp({ store, auth, geocodeImpl = geocode, veiligeCookie }) {
+export function createApp({ store, auth, pogingen, geocodeImpl = geocode, veiligeCookie }) {
   const cookieVeilig = veiligeCookie ?? process.env.NODE_ENV === 'production';
 
   return async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const pad = url.pathname;
     const methode = req.method ?? 'GET';
+    zetHeaders(res, { https: cookieVeilig });
     const token = leesCookie(req.headers.cookie);
     const gebruiker = await auth.gebruikerVoorToken(token);
 
@@ -128,8 +130,21 @@ export function createApp({ store, auth, geocodeImpl = geocode, veiligeCookie })
 
       if (pad === '/api/sessie' && methode === 'POST') {
         const body = await readJson(req);
+        const ip = bezoekerIp(req);
+
+        const stand = await pogingen.controleer(ip, body.email);
+        if (stand.geblokkeerd) {
+          return json(res, 429, {
+            errors: [`Te veel mislukte pogingen. Probeer over ${stand.minuten} minuten opnieuw.`],
+          }, { 'retry-after': String(stand.minuten * 60) });
+        }
+
         const res2 = await auth.login(body.email, body.wachtwoord);
-        if (!res2.ok) return fail(res, 401, 'E-mailadres of wachtwoord klopt niet.');
+        if (!res2.ok) {
+          await pogingen.noteerMislukking(ip, body.email);
+          return fail(res, 401, 'E-mailadres of wachtwoord klopt niet.');
+        }
+        await pogingen.wisVoor(body.email);
         return json(res, 200, { gebruiker: res2.gebruiker },
           { 'set-cookie': sessieCookie(res2.token, { veilig: cookieVeilig }) });
       }
@@ -288,8 +303,11 @@ export function createApp({ store, auth, geocodeImpl = geocode, veiligeCookie })
 export async function bouwApp(opties = {}) {
   const db = await openDb(opties);
   const auth = new Auth(db);
+  const store = new Store(db);
+  const pogingen = new Pogingen(db);
   await auth.ruimVervallenSessies();
-  return { db, store: new Store(db), auth, handle: createApp({ store: new Store(db), auth, ...opties }) };
+  await pogingen.opruimen();
+  return { db, store, auth, pogingen, handle: createApp({ store, auth, pogingen, ...opties }) };
 }
 
 export async function createHttpServer(opties = {}) {

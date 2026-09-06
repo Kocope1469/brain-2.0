@@ -1,6 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { nu } from './db.js';
+import { hashToken } from './beveiliging.js';
 
 const scryptAsync = promisify(scrypt);
 
@@ -98,25 +99,27 @@ export class Auth {
 
     const token = randomBytes(32).toString('base64url');
     const verloopt = new Date(Date.now() + SESSIE_DAGEN * 86400000).toISOString().replace('T', ' ').slice(0, 19);
+    // in de database komt alleen de hash: de bezoeker houdt het enige bruikbare token
     await this.db.run('INSERT INTO sessions(token, user_id, expires_at, created_at) VALUES(?,?,?,?)',
-      [token, gebruiker.id, verloopt, nu()]);
+      [hashToken(token), gebruiker.id, verloopt, nu()]);
     return { ok: true, token, gebruiker: { id: gebruiker.id, email: gebruiker.email, name: gebruiker.name } };
   }
 
   async logout(token) {
-    if (token) await this.db.run('DELETE FROM sessions WHERE token = ?', [token]);
+    if (token) await this.db.run('DELETE FROM sessions WHERE token = ?', [hashToken(token)]);
   }
 
   /** Geeft de ingelogde gebruiker terug, of null. Ruimt meteen vervallen sessies op. */
   async gebruikerVoorToken(token) {
     if (!token) return null;
+    const gehasht = hashToken(token);
     const rij = await this.db.get(`
       SELECT u.id, u.email, u.name, s.expires_at
       FROM sessions s JOIN users u ON u.id = s.user_id
-      WHERE s.token = ?`, [token]);
+      WHERE s.token = ?`, [gehasht]);
     if (!rij) return null;
     if (rij.expires_at <= nu()) {
-      await this.db.run('DELETE FROM sessions WHERE token = ?', [token]);
+      await this.db.run('DELETE FROM sessions WHERE token = ?', [gehasht]);
       return null;
     }
     return { id: rij.id, email: rij.email, name: rij.name };

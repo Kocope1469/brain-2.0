@@ -1,6 +1,7 @@
 import { openDb } from '../server/db.js';
 import { Store } from '../server/store.js';
 import { Auth } from '../server/auth.js';
+import { Pogingen } from '../server/beveiliging.js';
 
 /**
  * Elke test draait tegen SQLite en, als TEST_DATABASE_URL gezet is, ook tegen
@@ -30,10 +31,10 @@ export async function verseOmgeving({ schema, ...opties }) {
     await zonderSchema.close();
   }
   const db = await openDb(opties);
-  for (const tabel of ['customer_tags', 'tags', 'visits', 'customers', 'sessions', 'users']) {
+  for (const tabel of ['customer_tags', 'tags', 'visits', 'customers', 'sessions', 'users', 'login_attempts']) {
     await db.exec(`DELETE FROM ${tabel}`);
   }
-  return { db, store: new Store(db), auth: new Auth(db) };
+  return { db, store: new Store(db), auth: new Auth(db), pogingen: new Pogingen(db) };
 }
 
 export const dagenTerug = (n) => {

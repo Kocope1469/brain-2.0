@@ -17,7 +17,8 @@ for (const dialect of dialecten('api')) {
     before(async () => {
       omgeving = await verseOmgeving(dialect.opties);
       server = createServer(createApp({
-        store: omgeving.store, auth: omgeving.auth, geocodeImpl: nepGeocode, veiligeCookie: false,
+        store: omgeving.store, auth: omgeving.auth, pogingen: omgeving.pogingen,
+        geocodeImpl: nepGeocode, veiligeCookie: false,
       }));
       await new Promise((r) => server.listen(0, r));
       basis = `http://127.0.0.1:${server.address().port}`;

@@ -36,7 +36,7 @@ van dat bestand.
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 79 tests op SQLite
+npm test         # 94 tests op SQLite
 ```
 
 ## Online zetten op Vercel — stap voor stap
@@ -118,6 +118,55 @@ Herkende kolomnamen: `CRM-id`, `Bedrijf`, `Contactpersoon`, `Telefoon`, `E-mail`
 `Breedtegraad` en `Lengtegraad`. Nederlandse en Engelse namen werken allebei, net als
 komma's en de puntkomma van Excel NL/BE.
 
+## Beveiliging — wat er wel en niet in zit
+
+**Wat beschermd is**
+
+- **Alles zit achter een login.** Zonder aanmelding geeft elk eindpunt 401 en komt er
+  geen enkel klantgegeven naar buiten. Er zijn tests die dat per eindpunt nagaan.
+- **Wachtwoorden staan nooit leesbaar in de database.** Ze gaan door scrypt met een
+  eigen salt per gebruiker, dus twee mensen met hetzelfde wachtwoord krijgen een
+  andere hash. Vergelijken gebeurt in constante tijd.
+- **Sessietokens staan gehasht in de database.** Wie de database ooit in handen zou
+  krijgen, kan met die rijen niet inloggen. De cookie is `HttpOnly` (geen enkel script
+  kan hem lezen), `SameSite=Lax` (beschermt tegen verzoeken vanaf andere websites) en
+  `Secure` zodra je online draait.
+- **Wachtwoorden raden wordt geblokkeerd.** Na acht mislukte pogingen op één account,
+  of vijfentwintig vanaf één IP-adres, gaat de deur vijftien minuten dicht — ook voor
+  het juiste wachtwoord. De teller staat in de database, niet in het geheugen, zodat
+  hij ook op Vercel werkt waar elke aanvraag op een andere machine kan draaien.
+- **Het inlogscherm verraadt niet welke adressen bestaan.** Een onbekend e-mailadres
+  krijgt exact hetzelfde antwoord en dezelfde rekentijd als een fout wachtwoord.
+- **SQL-injectie is uitgesloten.** Elke waarde gaat als parameter de query in; alleen
+  kolomnamen uit een vaste lijst worden in de SQL zelf geplaatst.
+- **XSS is afgedekt.** Alle klantgegevens gaan door een escape-functie voor ze op het
+  scherm komen, en de contentbeleidsregel verbiedt inline scripts helemaal.
+- **Beveiligingsheaders** staan op elke pagina: een strikte `Content-Security-Policy`
+  (eigen scripts, kaarttegels alleen van OpenStreetMap), `X-Frame-Options: DENY`,
+  `nosniff`, `Referrer-Policy` en HSTS zodra je op HTTPS draait.
+- **Een wachtwoord wijzigen meldt alle bestaande sessies van die gebruiker af.**
+- **De server serveert geen bestanden buiten de publieke map.**
+
+**Wat er niet in zit — lees dit voor je klantgegevens invoert**
+
+- **Geen rollen.** Iedereen die kan inloggen kan alles, ook klanten en bezoeken
+  definitief verwijderen. Er is geen prullenbak.
+- **Geen logboek.** Je ziet wie een bezoek noteerde, maar niet wie iets wijzigde of
+  wiste.
+- **Geen tweestapsverificatie.** Een uitgelekt wachtwoord is voldoende om binnen te
+  raken.
+- **Geen "wachtwoord vergeten".** Een collega die zijn wachtwoord kwijt is, krijgt een
+  nieuw van iemand die wel binnen geraakt.
+- **Back-ups zijn jouw verantwoordelijkheid.** Neon houdt beperkt geschiedenis bij;
+  ga na wat je plan biedt en maak zelf regelmatig een export.
+- **Dit zijn persoonsgegevens.** Namen, telefoonnummers en gespreksnotities van
+  klanten vallen onder de GDPR. Zet erin wat zakelijk nodig is, niet meer, en geef
+  alleen toegang aan wie ze nodig heeft.
+
+Wat hier staat is niet zomaar beweerd: er draaien dertig tests die het nagaan, op
+beide databases. Ze staan in `test/beveiliging.test.js` en falen zodra iemand een van
+deze beschermingen wegneemt.
+
 ## Keuzes die bewust gemaakt zijn
 
 **Bezoeken bepalen de kleur, niets anders.** Geen statusveld dat je met de hand moet
@@ -158,7 +207,8 @@ server/
   csv.js         CSV lezen en schrijven
   seed.js        voorbeeldklanten
 public/          de interface: kaart, dossier, formulieren, inlogpagina, iconen
-test/            127 tests, die allemaal op beide databases draaien
+  beveiliging.js hashes, sessietokens, inlogpogingen, headers
+test/            157 tests, die allemaal op beide databases draaien
 ```
 
 ## Testen
@@ -173,9 +223,7 @@ tussen de twee databases merk je anders pas als een collega ermee werkt.
 
 ## Wat er nog niet in zit
 
-- **Geen rollen.** Iedereen die kan inloggen, kan alles — ook klanten verwijderen.
-  Voor een handvol collega's die elkaar kennen is dat prima; groeit het team, dan is
-  dit het eerste wat je toevoegt.
+- **Geen rollen.** Zie de beveiligingsparagraaf hierboven.
 - **Geen automatische koppeling met het CRM.** De import gaat via een CSV die je zelf
   exporteert. Dat is bewust: een echte koppeling is veel meer werk en gaat stuk zodra
   het CRM verandert.

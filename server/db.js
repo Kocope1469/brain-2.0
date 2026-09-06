@@ -35,6 +35,13 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip    TEXT NOT NULL,
+  email TEXT NOT NULL DEFAULT '',
+  at    TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS customers (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   external_id   TEXT NOT NULL DEFAULT '',
@@ -92,6 +99,13 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id    INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  ip    TEXT NOT NULL,
+  email TEXT NOT NULL DEFAULT '',
+  at    TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS customers (
   id            INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   external_id   TEXT NOT NULL DEFAULT '',
@@ -139,6 +153,8 @@ const INDEXEN = [
   'CREATE INDEX IF NOT EXISTS idx_customers_vat ON customers(vat_number)',
   'CREATE INDEX IF NOT EXISTS idx_visits_customer ON visits(customer_id, visit_date DESC)',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)',
+  'CREATE INDEX IF NOT EXISTS idx_pogingen_email ON login_attempts(email, at)',
+  'CREATE INDEX IF NOT EXISTS idx_pogingen_ip ON login_attempts(ip, at)',
 ];
 
 /** ?-plaatshouders omzetten naar $1, $2, … voor Postgres. */
