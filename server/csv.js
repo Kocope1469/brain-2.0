@@ -41,6 +41,7 @@ export function toCsv(rows, columns, delimiter = ';') {
 
 /** Kolomnamen uit een geimporteerd bestand omzetten naar velden van de klantenkaart. */
 const HEADER_ALIASES = {
+  external_id: ['crm-id', 'crm id', 'crmid', 'klantnummer', 'klantnr', 'id', 'externe id', 'external_id', 'referentie'],
   name: ['bedrijf', 'bedrijfsnaam', 'naam', 'klant', 'company', 'company_name', 'organisatie'],
   contact_name: ['contact', 'contactpersoon', 'contact_name', 'aanspreekpunt'],
   email: ['email', 'e-mail', 'mail', 'emailadres', 'e-mailadres'],

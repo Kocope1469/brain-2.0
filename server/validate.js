@@ -9,6 +9,36 @@ export const DREMPELS = { recent: 30, tijdje: 90 };
 
 export const BUCKETS = ['recent', 'tijdje', 'lang'];
 
+/**
+ * Belgische postcodereeksen per provincie. Zo krijg je een regiofilter zonder
+ * externe gegevensbron of geocoder: de postcode staat al in het CRM.
+ */
+const POSTCODEREEKSEN = [
+  [1000, 1299, 'Brussel'],
+  [1300, 1499, 'Waals-Brabant'],
+  [1500, 1999, 'Vlaams-Brabant'],
+  [2000, 2999, 'Antwerpen'],
+  [3000, 3499, 'Vlaams-Brabant'],
+  [3500, 3999, 'Limburg'],
+  [4000, 4999, 'Luik'],
+  [5000, 5999, 'Namen'],
+  [6000, 6599, 'Henegouwen'],
+  [6600, 6999, 'Luxemburg'],
+  [7000, 7999, 'Henegouwen'],
+  [8000, 8999, 'West-Vlaanderen'],
+  [9000, 9999, 'Oost-Vlaanderen'],
+];
+
+export const PROVINCIES = [...new Set(POSTCODEREEKSEN.map(([, , naam]) => naam))].sort();
+
+/** Provincie bij een Belgische postcode, of '' als hij er niet in past. */
+export function provincieVoor(postcode) {
+  const cijfers = String(postcode ?? '').replace(/\D/g, '');
+  if (cijfers.length !== 4) return '';
+  const n = Number(cijfers);
+  return POSTCODEREEKSEN.find(([van, tot]) => n >= van && n <= tot)?.[2] ?? '';
+}
+
 /** In welke kleurgroep valt een klant, gegeven de datum van het laatste bezoek. */
 export function bucketVoor(laatsteBezoek, vandaag = new Date()) {
   if (!laatsteBezoek) return 'lang';
@@ -52,7 +82,7 @@ const clean = (v, max = 500) => String(v ?? '').trim().slice(0, max);
 
 const TEKSTVELDEN = [
   ['contact_name', 120], ['phone', 40], ['street', 200],
-  ['postal_code', 20], ['city', 120], ['notes', 20000],
+  ['postal_code', 20], ['city', 120], ['notes', 20000], ['external_id', 80],
 ];
 
 export function validateCustomer(input = {}, { partial = false } = {}) {

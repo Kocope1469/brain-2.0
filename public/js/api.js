@@ -8,6 +8,10 @@ async function vraag(pad, opties = {}) {
   });
   const tekst = await res.text();
   const data = tekst ? JSON.parse(tekst) : null;
+  if (res.status === 401) {
+    location.replace('/login');
+    throw new Error('Niet meer aangemeld.');
+  }
   if (!res.ok) {
     const fouten = data?.errors ?? ['Er ging iets mis.'];
     const err = new Error(fouten[0]);
@@ -24,6 +28,12 @@ const qs = (params) => {
 };
 
 export const api = {
+  sessie: () => vraag('/api/sessie'),
+  uitloggen: () => vraag('/api/sessie', { method: 'DELETE' }),
+  gebruikers: () => vraag('/api/gebruikers'),
+  nieuweGebruiker: (data) => vraag('/api/gebruikers', { method: 'POST', body: data }),
+  verwijderGebruiker: (id) => vraag(`/api/gebruikers/${id}`, { method: 'DELETE' }),
+  wijzigWachtwoord: (id, wachtwoord) => vraag(`/api/gebruikers/${id}`, { method: 'PATCH', body: { wachtwoord } }),
   overzicht: () => vraag('/api/overzicht'),
   klanten: (filters = {}) => vraag(`/api/klanten${qs(filters)}`),
   klant: (id) => vraag(`/api/klanten/${id}`),

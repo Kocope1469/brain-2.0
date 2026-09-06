@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Klantenkaart">
+  <rect width="512" height="512" rx="112" fill="#151a21"/>
+  <path d="M150 132c-10 0-18 7-19 17l-22 226c-1 12 8 22 20 22h254c12 0 21-10 20-22l-22-226c-1-10-9-17-19-17z"
+        fill="none" stroke="#39414e" stroke-width="14"/>
+  <circle cx="196" cy="212" r="30" fill="#22a559"/>
+  <circle cx="322" cy="264" r="26" fill="#d98324"/>
+  <circle cx="212" cy="330" r="26" fill="#d3453d"/>
+  <circle cx="330" cy="164" r="18" fill="#22a559"/>
+</svg>

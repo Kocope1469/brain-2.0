@@ -272,3 +272,35 @@ label { display: block; font-size: .82rem; font-weight: 550; color: var(--ink-2)
   .balk { padding: 14px 18px 8px; }
   .chips { padding: 0 18px 12px; }
 }
+
+/* ---------- aanmelden ---------- */
+
+body.op-login { display: grid; place-items: center; padding: 24px 16px; }
+.loginvak { width: min(400px, 100%); }
+.loginkaart {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow); padding: 28px 26px 26px;
+}
+.loginlogo { display: flex; gap: 7px; margin-bottom: 16px; }
+.loginlogo .bol { width: 13px; height: 13px; border-radius: 50%; }
+.loginkaart h1 { font-size: 1.25rem; }
+.loginuitleg { margin: 6px 0 20px; color: var(--ink-2); font-size: .9rem; }
+.btn.block { width: 100%; justify-content: center; margin-top: 4px; }
+
+/* ---------- collega's ---------- */
+
+.gebruikerslijst { display: grid; gap: 2px; }
+.gebruiker {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem;
+}
+.gebruiker:last-child { border-bottom: 0; }
+.gebruiker > div:first-child { flex: 1; min-width: 140px; }
+.gebruiker .muted { font-size: .82rem; }
+.scheiding { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+
+/* op een geïnstalleerde app het veilige gebied respecteren */
+@supports (padding: env(safe-area-inset-top)) {
+  .balk { padding-top: max(12px, env(safe-area-inset-top)); }
+  .toasts { bottom: max(16px, env(safe-area-inset-bottom)); }
+}

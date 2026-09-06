@@ -121,6 +121,11 @@ export function importFormulier(naImport = () => {}) {
         <span class="mono">Breedtegraad</span> en <span class="mono">Lengtegraad</span>.
         Komma's en puntkomma's werken allebei.
       </p>
+      <p class="muted" style="margin-top:0">
+        <strong>Je kunt dit gerust herhalen.</strong> Klanten die al bestaan worden herkend aan hun
+        CRM-id, BTW-nummer of naam&nbsp;+&nbsp;postcode en worden bijgewerkt, niet opnieuw aangemaakt.
+        Bezoekverslagen, notities, tags en zelf geplaatste stippen blijven staan.
+      </p>
       <div class="field"><input type="file" id="f-bestand" accept=".csv,text/csv"></div>
       <div class="field">
         <label for="f-csv">CSV-inhoud</label>
@@ -132,12 +137,16 @@ export function importFormulier(naImport = () => {}) {
         toonFouten(['Plak eerst de inhoud van je CSV-bestand of kies een bestand.']);
         return false;
       }
-      const rapport = await probeer(() => api.importeer(data.csv));
-      const delen = [`${rapport.toegevoegd} klant(en) toegevoegd`];
-      if (rapport.mislukt.length) delen.push(`${rapport.mislukt.length} rij(en) overgeslagen`);
-      toast(`${delen.join(', ')}.`, rapport.mislukt.length ? 'fout' : 'ok');
-      if (rapport.mislukt.length) console.table(rapport.mislukt);
-      await naImport(rapport);
+      const r = await probeer(() => api.importeer(data.csv));
+      const delen = [];
+      if (r.nieuw) delen.push(`${r.nieuw} nieuw`);
+      if (r.bijgewerkt) delen.push(`${r.bijgewerkt} bijgewerkt`);
+      if (r.ongewijzigd) delen.push(`${r.ongewijzigd} ongewijzigd`);
+      if (r.mislukt.length) delen.push(`${r.mislukt.length} overgeslagen`);
+      toast(`${r.gelezen} rij(en) gelezen — ${delen.join(', ') || 'niets te doen'}.`,
+        r.mislukt.length ? 'fout' : 'ok');
+      if (r.mislukt.length) console.table(r.mislukt);
+      await naImport(r);
       form.reset();
     },
   });
@@ -147,4 +156,80 @@ export function importFormulier(naImport = () => {}) {
     const file = bestand.files?.[0];
     if (file) document.getElementById('f-csv').value = await file.text();
   };
+}
+
+
+/** Collega's beheren: wie kan er inloggen, en wachtwoorden opnieuw zetten. */
+export function gebruikersFormulier() {
+  modal({
+    titel: "Collega's",
+    breed: true,
+    bevestig: 'Collega toevoegen',
+    body: `
+      <div id="gebruikerslijst" class="gebruikerslijst">Laden…</div>
+      <hr class="scheiding">
+      <div class="fields">
+        ${veld('name', 'Naam', '', 'placeholder="Voornaam Achternaam"')}
+        ${veld('email', 'E-mailadres', '', 'type="email" required')}
+        ${veld('wachtwoord', 'Wachtwoord', '', 'type="password" required autocomplete="new-password" minlength="10"')}
+      </div>
+      <p class="hint">Minstens 10 tekens. Geef het wachtwoord door en laat je collega het nadien wijzigen.</p>`,
+    onSubmit: async (data, form) => {
+      try {
+        await api.nieuweGebruiker(data);
+        toast(`${data.email} kan nu inloggen.`);
+        form.reset();
+        await vulGebruikers();
+        return false; // venster openhouden zodat je er meerdere na elkaar kunt toevoegen
+      } catch (err) {
+        toonFouten(err.fouten ?? [err.message]);
+        return false;
+      }
+    },
+  });
+  vulGebruikers();
+}
+
+async function vulGebruikers() {
+  const bak = document.getElementById('gebruikerslijst');
+  if (!bak) return;
+  try {
+    const lijst = await api.gebruikers();
+    bak.innerHTML = lijst.map((g) => `
+      <div class="gebruiker">
+        <div>
+          <strong>${esc(g.name || g.email)}</strong>
+          ${g.name ? `<div class="muted">${esc(g.email)}</div>` : ''}
+        </div>
+        <button class="linklike" data-wachtwoord="${g.id}">Nieuw wachtwoord</button>
+        <button class="linklike gevaar" data-weg="${g.id}" data-naam="${esc(g.email)}">Verwijderen</button>
+      </div>`).join('');
+
+    for (const knop of bak.querySelectorAll('[data-weg]')) {
+      knop.onclick = async () => {
+        if (!confirm(`${knop.dataset.naam} de toegang ontnemen?`)) return;
+        try {
+          await api.verwijderGebruiker(knop.dataset.weg);
+          toast('Toegang ingetrokken.');
+          await vulGebruikers();
+        } catch (err) {
+          toonFouten(err.fouten ?? [err.message]);
+        }
+      };
+    }
+    for (const knop of bak.querySelectorAll('[data-wachtwoord]')) {
+      knop.onclick = async () => {
+        const nieuw = prompt('Nieuw wachtwoord (minstens 10 tekens):');
+        if (!nieuw) return;
+        try {
+          await api.wijzigWachtwoord(knop.dataset.wachtwoord, nieuw);
+          toast('Wachtwoord gewijzigd. Bestaande sessies zijn afgemeld.');
+        } catch (err) {
+          toonFouten(err.fouten ?? [err.message]);
+        }
+      };
+    }
+  } catch (err) {
+    bak.textContent = err.message;
+  }
 }

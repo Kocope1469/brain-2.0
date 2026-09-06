@@ -1,5 +1,6 @@
 import { openDb } from './db.js';
 import { Store } from './store.js';
+import { Auth } from './auth.js';
 
 /** Datum n dagen geleden, als JJJJ-MM-DD. */
 const dagenTerug = (n) => {
@@ -13,11 +14,11 @@ const dagenTerug = (n) => {
  * alle drie de kleurgroepen laat zien: recent bezocht, een tijdje geleden,
  * en lang niet meer geweest.
  */
-export function seed(store, { stil = false } = {}) {
+export async function seed(store, { stil = false } = {}) {
   const klanten = [
     {
       klant: {
-        name: 'Demagro', contact_name: 'Peter Vandriessche', phone: '051 26 03 30',
+        external_id: 'CRM-1001', name: 'Demagro', contact_name: 'Peter Vandriessche', phone: '051 26 03 30',
         email: 'info@demagro.be', street: 'Diksmuidsesteenweg 406', postal_code: '8800',
         city: 'Roeselare', lat: 50.9556, lon: 3.1256, tags: ['voeders', 'west-vlaanderen'],
         notes: 'Peter is het aanspreekpunt voor voeders. Beslist zelf over voorraad.\nLevering liefst voor 10u.',
@@ -29,7 +30,7 @@ export function seed(store, { stil = false } = {}) {
     },
     {
       klant: {
-        name: 'Landbouwbedrijf Vermeulen', contact_name: 'Lieve Vermeulen', phone: '09 223 44 12',
+        external_id: 'CRM-1002', name: 'Landbouwbedrijf Vermeulen', contact_name: 'Lieve Vermeulen', phone: '09 223 44 12',
         email: 'lieve@lbvermeulen.be', street: 'Sleepstraat 42', postal_code: '9000',
         city: 'Gent', vat_number: 'BE0123456749', lat: 51.0596, lon: 3.7256,
         tags: ['akkerbouw', 'oost-vlaanderen'],
@@ -43,7 +44,7 @@ export function seed(store, { stil = false } = {}) {
     },
     {
       klant: {
-        name: 'Melkveebedrijf Claes', contact_name: 'Dirk Claes', phone: '014 55 22 11',
+        external_id: 'CRM-1003', name: 'Melkveebedrijf Claes', contact_name: 'Dirk Claes', phone: '014 55 22 11',
         email: 'info@claesmelkvee.be', street: 'Steenweg op Gierle 200', postal_code: '2300',
         city: 'Turnhout', vat_number: 'BE0789456175', lat: 51.3226, lon: 4.9447,
         tags: ['melkvee', 'antwerpen'],
@@ -55,7 +56,7 @@ export function seed(store, { stil = false } = {}) {
     },
     {
       klant: {
-        name: 'Hoeve Peeters & Zonen', contact_name: 'Tom Peeters', phone: '011 45 67 89',
+        external_id: 'CRM-1004', name: 'Hoeve Peeters & Zonen', contact_name: 'Tom Peeters', phone: '011 45 67 89',
         email: 'tom@hoevepeeters.be', street: 'Kempische Steenweg 118', postal_code: '3500',
         city: 'Hasselt', vat_number: 'BE0456789133', lat: 50.9307, lon: 5.3378,
         tags: ['varkens', 'limburg'],
@@ -124,12 +125,12 @@ export function seed(store, { stil = false } = {}) {
 
   let aantal = 0;
   for (const rij of klanten) {
-    const res = store.createCustomer(rij.klant);
+    const res = await store.createCustomer(rij.klant);
     if (!res.ok) {
       console.error('Seed mislukt voor', rij.klant.name, res.errors);
       continue;
     }
-    for (const b of rij.bezoeken) store.addVisit(res.value.id, b);
+    for (const b of rij.bezoeken) await store.addVisit(res.value.id, b, 'Voorbeelddata');
     aantal++;
   }
   if (!stil) console.log(`${aantal} voorbeeldklanten toegevoegd.`);
@@ -137,11 +138,20 @@ export function seed(store, { stil = false } = {}) {
 }
 
 if (process.argv[1] && process.argv[1].endsWith('seed.js')) {
-  const store = new Store(openDb());
-  const bestaand = store.listCustomers().length;
+  const db = await openDb();
+  const store = new Store(db);
+  const bestaand = (await store.listCustomers()).length;
   if (bestaand > 0 && !process.argv.includes('--force')) {
     console.log(`Database bevat al ${bestaand} klanten. Gebruik --force om toch te seeden.`);
   } else {
-    seed(store);
+    await seed(store);
   }
+  // handig voor een demo: een gebruiker meegeven zodat je meteen kunt inloggen
+  const auth = new Auth(db);
+  if (process.env.SEED_GEBRUIKER && await auth.aantalGebruikers() === 0) {
+    const [email, wachtwoord] = process.env.SEED_GEBRUIKER.split(':');
+    const res = await auth.maakGebruiker({ email, name: 'Demo', wachtwoord });
+    console.log(res.ok ? `Gebruiker ${email} aangemaakt.` : `Gebruiker niet aangemaakt: ${res.errors}`);
+  }
+  await db.close();
 }

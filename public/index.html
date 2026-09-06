@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Klantenkaart</title>
   <meta name="description" content="Al je klanten op de kaart, gekleurd naar hoe lang geleden je er langsging.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23151a21'/><circle cx='38' cy='38' r='11' fill='%2322a559'/><circle cx='66' cy='52' r='9' fill='%23d98324'/><circle cx='42' cy='68' r='9' fill='%23d3453d'/></svg>">
+  <meta name="theme-color" content="#151a21">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Klanten">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/css/app.css">
 </head>
@@ -27,13 +33,17 @@
   </nav>
 
   <div class="filterlade" id="filterlade" hidden>
+    <label for="provincie">Regio</label>
+    <select id="provincie"><option value="">Heel België</option></select>
     <label for="tag">Tag</label>
     <select id="tag"><option value="">Alle tags</option></select>
     <button class="btn btn-sm" id="wis">Filters wissen</button>
     <span class="rek"></span>
-    <a href="/api/klanten/export.csv">CSV</a>
-    <button class="linklike" id="import">Importeren</button>
     <button class="linklike" id="nieuw">+ Nieuwe klant</button>
+    <button class="linklike" id="import">CSV importeren</button>
+    <a href="/api/klanten/export.csv">Exporteren</a>
+    <button class="linklike" id="gebruikers">Collega's</button>
+    <button class="linklike" id="uitloggen">Uitloggen</button>
   </div>
 
   <div class="werkblad">

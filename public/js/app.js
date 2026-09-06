@@ -2,7 +2,7 @@ import { api, probeer } from './api.js';
 import { esc, toast, opties } from './util.js';
 import { Kaart } from './kaart.js';
 import { toonDossier, toonLeeg } from './dossier.js';
-import { klantFormulier, importFormulier } from './forms.js';
+import { klantFormulier, importFormulier, gebruikersFormulier } from './forms.js';
 
 const el = {
   zoek: document.getElementById('zoek'),
@@ -10,13 +10,14 @@ const el = {
   lade: document.getElementById('filterlade'),
   chips: document.getElementById('chips'),
   tag: document.getElementById('tag'),
+  provincie: document.getElementById('provincie'),
   dossier: document.getElementById('dossier'),
   melding: document.getElementById('kaartmelding'),
   plaatsbalk: document.getElementById('plaatsbalk'),
   plaatstekst: document.getElementById('plaatstekst'),
 };
 
-const staat = { q: '', bucket: '', tag: '', klanten: [], geselecteerd: null, plaatstVoor: null };
+const staat = { q: '', bucket: '', tag: '', provincie: '', klanten: [], geselecteerd: null, plaatstVoor: null };
 
 const kaart = new Kaart('kaart', {
   onSelecteer: (id) => selecteer(id, { vlieg: false }),
@@ -29,7 +30,9 @@ const kaart = new Kaart('kaart', {
 
 /** Haalt de gefilterde klantenlijst op en tekent de kaart opnieuw. */
 async function ververs({ pasAan = false } = {}) {
-  staat.klanten = await api.klanten({ q: staat.q, bucket: staat.bucket, tag: staat.tag });
+  staat.klanten = await api.klanten({
+    q: staat.q, bucket: staat.bucket, tag: staat.tag, provincie: staat.provincie,
+  });
   kaart.toon(staat.klanten, staat.geselecteerd);
   if (pasAan) kaart.pasAan(staat.klanten);
 
@@ -41,13 +44,20 @@ async function ververs({ pasAan = false } = {}) {
 }
 
 async function ververTellingen() {
-  const { tellingen, tags } = await api.overzicht();
+  const { tellingen, tags, provincies } = await api.overzicht();
   for (const chip of el.chips.querySelectorAll('.chip')) {
     chip.querySelector('span').textContent = tellingen[chip.dataset.bucket];
   }
   const huidige = el.tag.value;
   el.tag.innerHTML = `<option value="">Alle tags</option>${opties(tags.map((t) => [t.name, `${t.name} (${t.aantal})`]), huidige)}`;
   el.tag.value = staat.tag;
+
+  // alleen provincies waar ook echt klanten zitten, met hun aantal erbij
+  const metKlanten = new Map(tellingen.per_provincie);
+  el.provincie.innerHTML = `<option value="">Heel België (${tellingen.totaal})</option>${opties(
+    provincies.filter((p) => metKlanten.has(p)).map((p) => [p, `${p} (${metKlanten.get(p)})`]), staat.provincie)}`;
+  el.provincie.value = staat.provincie;
+
   staat.tellingen = tellingen;
 }
 
@@ -156,11 +166,13 @@ el.filter.onclick = () => {
 };
 
 el.tag.onchange = async () => { staat.tag = el.tag.value; await ververs({ pasAan: true }); };
+el.provincie.onchange = async () => { staat.provincie = el.provincie.value; await ververs({ pasAan: true }); };
 
 document.getElementById('wis').onclick = async () => {
-  staat.q = staat.bucket = staat.tag = '';
+  staat.q = staat.bucket = staat.tag = staat.provincie = '';
   el.zoek.value = '';
   el.tag.value = '';
+  el.provincie.value = '';
   for (const c of el.chips.querySelectorAll('.chip')) {
     c.classList.remove('aan');
     c.setAttribute('aria-pressed', 'false');
@@ -173,6 +185,11 @@ document.getElementById('nieuw').onclick = () => klantFormulier(null, async (k) 
   await selecteer(k.id);
 });
 document.getElementById('import').onclick = () => importFormulier(() => ververs({ pasAan: true }));
+document.getElementById('gebruikers').onclick = () => gebruikersFormulier();
+document.getElementById('uitloggen').onclick = async () => {
+  await api.uitloggen();
+  location.replace('/login');
+};
 
 // ---------- start ----------
 

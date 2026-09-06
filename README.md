@@ -1,126 +1,184 @@
 # Klantenkaart
 
-Al je klanten als stip op de kaart, gekleurd naar hoe lang geleden je er langsging.
-Groen is recent, oranje is een tijdje geleden, rood is te lang. Klik een stip aan en
-je ziet het klantdossier met de bezoekgeschiedenis: wanneer, met wie, en waarover.
+Al je klanten als stip op de kaart van België, gekleurd naar hoe lang geleden je er
+langsging. Groen is recent, oranje is een tijdje geleden, rood is te lang. Klik een
+stip aan en je ziet wie het is, wanneer je er laatst was, en alles wat er bij vorige
+bezoeken besproken werd.
 
-Gemaakt voor iemand die de baan op gaat en wil zien wie er in de buurt ligt en wie
-hij al te lang niet gezien heeft.
+Vervangt het Excel-overzicht van Comsoltech. Gemaakt om te gebruiken terwijl je op de
+baan bent: je staat bij een klant en ziet meteen wie er nog in de buurt zit.
 
-## Starten
+## In het kort
+
+- **Kaart** met een stip per klant, kleur volgt automatisch uit het laatste bezoek
+- **Zoeken** op naam, contactpersoon, gemeente, postcode en notities
+- **Filters** op laatste bezoek (drie knoppen), regio (provincie) en tag
+- **Klantdossier** met bedrijfsgegevens en een tijdlijn van bezoeken: datum, met wie,
+  en wat er besproken is
+- **CSV-import** uit je CRM die je zo vaak mag herhalen als je wil — bezoekverslagen
+  gaan nooit verloren
+- **Login** voor jou en je collega's, iedereen ziet en beheert dezelfde gegevens
+- **Werkt op de gsm** en kan als icoontje op je startscherm
+
+## Lokaal starten
 
 ```bash
-npm run seed     # optioneel: negen voorbeeldklanten verspreid over Vlaanderen
+npm install
+npm run seed     # optioneel: negen voorbeeldklanten om mee te spelen
 npm start        # http://localhost:3000
 ```
 
-Verder:
+De eerste keer dat je de app opent, maak je meteen je eigen account aan. Daarna kan
+niemand zich nog zelf registreren — collega's voeg je toe via **Filter → Collega's**.
+
+Lokaal draait alles op één bestand: `data/klantenkaart.db`. Een back-up is een kopie
+van dat bestand.
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 66 tests, ~0,4s
+npm test         # 79 tests op SQLite
 ```
 
-De database is één bestand: `data/klantenkaart.db` (staat in `.gitignore`).
-Een back-up is een kopie van dat bestand. Elders bewaren: `KLANTENKAART_DB=/pad/db`.
-Andere poort: `PORT=8080`.
+## Online zetten op Vercel — stap voor stap
 
-## Wat het doet
+Vercel draait je code, maar heeft géén plek om bestanden te bewaren: elke aanvraag
+begint op een lege, tijdelijke schijf. Daarom heb je er een aparte database bij nodig.
+De app werkt met allebei: SQLite als je lokaal werkt, Postgres zodra je een
+`DATABASE_URL` instelt. Je moet daarvoor niets in de code veranderen.
 
-**De kaart** — één stip per klant. De kleur volgt automatisch uit het meest recente
-bezoek: tot 30 dagen groen, tot 90 dagen oranje, daarna rood. Nooit bezocht is ook
-rood, want dat is precies wat je wil zien.
+**1. Zet de code op GitHub.** Als je dit leest vanuit de repository, staat hij er al.
 
-**Zoeken en filteren** — één zoekveld voor naam, contactpersoon, gemeente, postcode
-en notities. Drie knoppen om op kleurgroep te filteren, met een teller per groep.
-Filteren op tag kan achter de Filter-knop. De kaart kadert zich telkens opnieuw in
-op wat er overblijft.
+**2. Maak een Vercel-account** op [vercel.com](https://vercel.com) — inloggen met je
+GitHub-account is het eenvoudigst.
 
-**Het klantdossier** — contactgegevens, adres, BTW, tags, vrije notities, en
-daaronder alle bezoeken van recent naar oud. Een bezoek noteren is drie velden:
-datum, met wie, en waarover het ging.
+**3. Importeer het project.** Klik *Add New → Project*, kies deze repository en klik
+*Import*. Laat alle instellingen staan zoals ze zijn en klik *Deploy*. De eerste keer
+werkt de app nog niet volledig; dat is normaal, de database komt in de volgende stap.
 
-**Stippen plaatsen** — klanten zonder coördinaten staan niet op de kaart, en dat
-wordt niet verzwegen: linksonder staat wie er ontbreekt. Eén klik op "Op de kaart
-zetten", dan klikken waar de klant ligt. Wie een adres heeft ingevuld kan het ook
-automatisch laten opzoeken.
+**4. Maak een database.** Ga in je project naar het tabblad *Storage* → *Create
+Database* → kies **Neon** (Postgres). Neem het gratis plan; dat is ruim voldoende voor
+een paar honderd klanten. Klik *Connect* om hem aan dit project te koppelen.
 
-**CSV in en uit** — de import herkent Nederlandse en Engelse kolomnamen, komma's
-zowel als de puntkomma van Excel NL/BE, neemt `Breedtegraad` en `Lengtegraad` mee
-als je die hebt, en meldt per rij wat mislukte.
+Vercel zet daarbij zelf een omgevingsvariabele klaar. Controleer onder *Settings →
+Environment Variables* of er een variabele met de naam **`DATABASE_URL`** staat. Staat
+er alleen `POSTGRES_URL` of `DATABASE_URL_UNPOOLED`, maak dan zelf een variabele
+`DATABASE_URL` bij met dezelfde waarde.
+
+**5. Deploy opnieuw.** Ga naar *Deployments*, klik rechts bij de bovenste op de drie
+puntjes en kies *Redeploy*. Dit is nodig omdat de app de database pas bij het opstarten
+inleest.
+
+**6. Maak je account aan.** Open de URL die Vercel je geeft. Je krijgt het scherm
+"Eerste gebruiker aanmaken". Vul je naam, e-mailadres en een wachtwoord van minstens
+tien tekens in. Vanaf dat moment is de app afgeschermd.
+
+**7. Voeg je collega's toe.** Klik op *Filter* → *Collega's*, vul naam, e-mailadres en
+een wachtwoord in. Geef dat wachtwoord door en laat hen het nadien wijzigen.
+
+**8. Zet je klanten erin.** *Filter* → *CSV importeren*. Exporteer je klanten uit het
+CRM naar CSV, plak de inhoud of kies het bestand.
+
+**9. Op het startscherm zetten.** Open de URL op je gsm. Op Android: menu → *App
+installeren*. Op iPhone in Safari: deelknop → *Zet op beginscherm*. Je krijgt een
+icoontje en de app opent schermvullend, zonder browserbalk.
+
+### Later opnieuw importeren
+
+Dat is de bedoeling: draai de import zo vaak je wil. Bestaande klanten worden herkend
+en bijgewerkt, nieuwe komen erbij, en je bezoekverslagen blijven staan. Zie hieronder
+hoe dat herkennen werkt.
+
+### Een eigen domein
+
+*Settings → Domains* in Vercel, vul je domeinnaam in en volg de instructies die er
+verschijnen. Vercel regelt het beveiligingscertificaat zelf.
+
+## Hoe de CSV-import je gegevens beschermt
+
+Bij elke rij zoekt de app eerst of die klant al bestaat, in deze volgorde:
+
+1. het **CRM-id** (kolom `CRM-id`, `Klantnummer` of `Referentie`) — het betrouwbaarst
+2. het **BTW-nummer**
+3. **naam + postcode**
+
+Bestaat de klant al, dan worden alleen de bedrijfsgegevens bijgewerkt. Wat nooit
+overschreven wordt:
+
+- **bezoekverslagen** — die staan los van de import
+- **je eigen notities** op de klant
+- **tags**
+- **een stip die je zelf op de kaart hebt gezet**
+
+Een lege cel in de export wist niets: als het CRM geen telefoonnummer meer meestuurt,
+blijft het nummer dat er stond gewoon staan. Na afloop krijg je te zien hoeveel rijen
+nieuw, bijgewerkt, ongewijzigd of overgeslagen zijn.
+
+Herkende kolomnamen: `CRM-id`, `Bedrijf`, `Contactpersoon`, `Telefoon`, `E-mail`,
+`Straat`, `Postcode`, `Gemeente`, `Land`, `BTW`, `Tags`, `Notities`, en als je ze hebt
+`Breedtegraad` en `Lengtegraad`. Nederlandse en Engelse namen werken allebei, net als
+komma's en de puntkomma van Excel NL/BE.
 
 ## Keuzes die bewust gemaakt zijn
 
-**Bezoeken bepalen de kleur, niets anders.** Geen handmatig statusveld dat je moet
-bijwerken en dus na drie weken liegt. Noteer je een bezoek, dan wordt de stip
-groen. Doe je dat niet, dan wordt hij vanzelf rood. Dat is het hele mechanisme.
+**Bezoeken bepalen de kleur, niets anders.** Geen statusveld dat je met de hand moet
+bijhouden en dus na drie weken liegt. Noteer je een bezoek, dan wordt de stip groen;
+doe je niets, dan wordt hij vanzelf rood. Grenzen: 30 dagen groen, 90 dagen oranje,
+daarna rood. Aan te passen in `server/validate.js` bij `DREMPELS`.
 
-**Geen coördinaten betekent geen stip, niet stiekem op 0,0.** Een klant zonder
-plaats hoort niet ergens in de Golf van Guinee te verschijnen. Hij staat gewoon in
-de lijst "niet op de kaart" tot je hem plaatst.
+**De regio komt uit de postcode.** Geen extra veld om in te vullen: de Belgische
+postcodereeksen bepalen de provincie. Dat werkt ook voor klanten die je uit het CRM
+importeert zonder dat je iets moet doen.
 
-**De kaart werkt door zonder internet.** De achtergrondtegels komen van
-OpenStreetMap en hebben een verbinding nodig. Vallen ze weg, dan blijven de stippen
-en hun onderlinge ligging kloppen; je krijgt een melding en verder niets.
+**Geen coördinaten betekent geen stip, niet stiekem op 0,0.** Klanten zonder locatie
+staan linksonder in beeld vermeld, en je zet ze met één klik op de kaart. Wie een adres
+heeft, kan het automatisch laten opzoeken.
 
-**De adresopzoeking mag falen.** Nominatim is gratis, met een gebruiksbeleid en een
-wachtrij van één verzoek per seconde. Antwoordt hij niet, dan zet je de stip zelf
-met één klik. Nooit een blokkade.
+**De kaart werkt door zonder internet.** De achtergrond komt van OpenStreetMap. Valt
+die weg, dan blijven de stippen en hun onderlinge ligging kloppen en krijg je een
+melding — geen leeg scherm.
 
-**Leaflet staat in de repo, niet op een CDN.** `public/vendor/leaflet/`, 196 KB,
-BSD-licentie meegeleverd. Verder nul dependencies: Node 22 heeft SQLite ingebouwd,
-de rest is standaardbibliotheek. Geen `npm install`, geen buildstap.
+**Wachtwoorden staan niet leesbaar in de database.** Ze gaan door scrypt met een eigen
+salt per gebruiker. De sessiecookie is `HttpOnly`, dus geen enkel script kan hem lezen.
+Wijzig je een wachtwoord, dan worden alle bestaande sessies van die gebruiker afgemeld.
+
+**Weinig afhankelijkheden.** Eén npm-pakket (`pg`, voor Postgres). Leaflet staat in de
+repository zelf, niet op een CDN. Node 22 heeft SQLite ingebouwd. Geen buildstap.
 
 ## Structuur
 
 ```
+api/index.js     ingang voor Vercel
 server/
-  index.js     HTTP-server, routes, statische bestanden
-  db.js        SQLite-schema en verbinding
-  store.js     alle queries — de enige plek waar SQL staat
-  validate.js  validatie, BTW-controle, coördinaten, kleurgroepen
-  geocode.js   adres -> coördinaten via Nominatim, faalt zacht
-  csv.js       CSV lezen en schrijven
-  seed.js      voorbeeldklanten
-public/
-  index.html   de schil
-  css/app.css  volledige stijl, donker en licht
-  js/          app.js (regie), kaart.js (Leaflet), dossier.js, forms.js, api.js, util.js
-  vendor/      Leaflet
-test/          66 tests: validatie, store, csv, en de API end-to-end
+  index.js       HTTP-server, routes, toegangscontrole
+  db.js          SQLite én Postgres achter één adapter
+  store.js       alle queries en de import — de enige plek met SQL
+  auth.js        wachtwoorden, sessies, gebruikers
+  validate.js    validatie, BTW, coördinaten, kleurgroepen, provincies
+  geocode.js     adres naar coördinaten, faalt zacht
+  csv.js         CSV lezen en schrijven
+  seed.js        voorbeeldklanten
+public/          de interface: kaart, dossier, formulieren, inlogpagina, iconen
+test/            127 tests, die allemaal op beide databases draaien
 ```
 
-## API
+## Testen
 
-Alles onder `/api`. JSON in, JSON uit. Fouten komen terug als
-`{"errors": ["Naam is verplicht."]}` met status 422.
+```bash
+npm test                                              # SQLite
+TEST_DATABASE_URL=postgres://... npm test             # SQLite én Postgres
+```
 
-| Methode | Pad | Wat |
-| --- | --- | --- |
-| `GET` | `/api/klanten?q=&bucket=&tag=&opkaart=1` | klanten met stip, laatste bezoek en kleurgroep |
-| `POST` | `/api/klanten` | nieuwe klant |
-| `GET` | `/api/klanten/:id` | dossier met alle bezoeken |
-| `PATCH` | `/api/klanten/:id` | gedeeltelijk bijwerken, ook enkel `lat`/`lon` |
-| `DELETE` | `/api/klanten/:id` | klant en zijn bezoeken |
-| `POST` | `/api/klanten/:id/bezoeken` | bezoek noteren |
-| `DELETE` | `/api/bezoeken/:id` | bezoek verwijderen |
-| `GET` | `/api/overzicht` | tellingen per kleurgroep, tags, drempels |
-| `POST` | `/api/geocode` | adres omzetten naar coördinaten |
-| `GET` | `/api/klanten/export.csv` | export |
-| `POST` | `/api/klanten/import` | import (`{"csv": "..."}`) |
+De tweede vorm is de belangrijke: online draait de app op Postgres, en een verschil
+tussen de twee databases merk je anders pas als een collega ermee werkt.
 
-## Voor je dit online zet
+## Wat er nog niet in zit
 
-Twee dingen.
-
-**Er zit geen authenticatie in.** Lokaal of in je eigen netwerk is dat prima. Publiek
-bereikbaar betekent dat iedereen je volledige klantenbestand kan lezen, aanpassen en
-exporteren — persoonsgegevens dus. Zet er dan minstens een login en HTTPS voor.
-
-**Deze opzet past niet op Vercel of een andere serverless host.** De database is een
-bestand op schijf, en daar heeft een serverless functie er geen van: elke aanroep
-start op een verse, tijdelijke schijf. Je klanten zouden verdwijnen. Wil je dit
-online: draai het op een gewone server of VPS met een blijvende schijf (of container
-met volume), of wissel SQLite om voor een gehoste database zoals Postgres. Dat laatste
-raakt alleen `server/db.js` en `server/store.js` — alle SQL staat op één plek, precies
-daarvoor.
+- **Geen rollen.** Iedereen die kan inloggen, kan alles — ook klanten verwijderen.
+  Voor een handvol collega's die elkaar kennen is dat prima; groeit het team, dan is
+  dit het eerste wat je toevoegt.
+- **Geen automatische koppeling met het CRM.** De import gaat via een CSV die je zelf
+  exporteert. Dat is bewust: een echte koppeling is veel meer werk en gaat stuk zodra
+  het CRM verandert.
+- **Adressen worden niet automatisch omgezet naar stippen bij een import.** Dat zou
+  honderden opzoekingen betekenen bij een gratis dienst met een wachtrij. Je zet ze
+  handmatig, of je neemt `Breedtegraad` en `Lengtegraad` mee in je export.

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aanmelden — Klantenkaart</title>
+  <meta name="theme-color" content="#151a21">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="op-login">
+  <main class="loginvak">
+    <form class="loginkaart" id="form">
+      <div class="loginlogo" aria-hidden="true">
+        <span class="bol" style="background:#22a559"></span>
+        <span class="bol" style="background:#d98324"></span>
+        <span class="bol" style="background:#d3453d"></span>
+      </div>
+      <h1 id="titel">Aanmelden</h1>
+      <p class="loginuitleg" id="uitleg">Klantenkaart van Comsoltech.</p>
+
+      <div id="fout"></div>
+
+      <div class="field" id="naamveld" hidden>
+        <label for="name">Je naam</label>
+        <input id="name" name="name" autocomplete="name" placeholder="Kobe">
+      </div>
+      <div class="field">
+        <label for="email">E-mailadres</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="wachtwoord">Wachtwoord</label>
+        <input id="wachtwoord" name="wachtwoord" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="btn btn-primary block" type="submit" id="knop">Aanmelden</button>
+    </form>
+  </main>
+  <script type="module" src="/js/login.js"></script>
+</body>
+</html>

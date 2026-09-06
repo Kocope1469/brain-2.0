@@ -11,6 +11,10 @@
     "start": "node --no-warnings server/index.js",
     "dev": "node --no-warnings --watch server/index.js",
     "seed": "node --no-warnings server/seed.js",
-    "test": "node --no-warnings --test \"test/*.test.js\""
+    "test": "node --no-warnings --test \"test/*.test.js\"",
+    "test:pg": "node --no-warnings --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
   }
 }
