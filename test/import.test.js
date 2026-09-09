@@ -123,3 +123,69 @@ for (const dialect of dialecten('import')) {
     });
   });
 }
+
+/**
+ * Een import die per klant een handvol losse vragen aan de database stelt, duurt
+ * bij een gehoste database te lang en wordt door een serverless platform afgekapt.
+ * Deze test bewaakt dat het bulk blijft: hij telt de vragen.
+ */
+for (const dialect of dialecten('import-snelheid')) {
+  describe(`hoeveel de import de database lastigvalt op ${dialect.naam}`, () => {
+    let store;
+    let db;
+    let vragen = 0;
+
+    beforeEach(async () => {
+      ({ store, db } = await verseOmgeving(dialect.opties));
+      for (const methode of ['all', 'get', 'run', 'insert']) {
+        const origineel = db[methode].bind(db);
+        db[methode] = (...args) => { vragen++; return origineel(...args); };
+      }
+    });
+    after(async () => { await db?.close(); });
+
+    const rijen = (aantal) => Array.from({ length: aantal }, (_, i) => ({
+      name: `Bedrijf ${i}`, postal_code: String(2000 + i), city: 'Gemeente',
+      email: `info${i}@bedrijf.be`, tags: 'elektro, klant',
+    }));
+
+    test('nieuwe klanten kosten ongeveer één schrijfactie per klant, niet tien', async () => {
+      vragen = 0;
+      const r = await store.importeer(rijen(100));
+      assert.equal(r.nieuw, 100);
+      assert.ok(vragen <= 110, `100 nieuwe klanten kostten ${vragen} vragen; dat hoort rond de 100 te liggen`);
+    });
+
+    test('een herimport zonder wijzigingen kost bijna niets', async () => {
+      await store.importeer(rijen(100));
+      vragen = 0;
+      const r = await store.importeer(rijen(100));
+      assert.equal(r.ongewijzigd, 100);
+      assert.ok(vragen <= 3, `een herimport kostte ${vragen} vragen; dat hoort er 1 à 2 te zijn`);
+    });
+
+    test('enkel de gewijzigde klanten worden weggeschreven', async () => {
+      await store.importeer(rijen(100));
+      const gewijzigd = rijen(100).map((r, i) => (i < 5 ? { ...r, phone: '011 22 33 44' } : r));
+      vragen = 0;
+      const r = await store.importeer(gewijzigd);
+      assert.equal(r.bijgewerkt, 5);
+      assert.equal(r.ongewijzigd, 95);
+      assert.ok(vragen <= 8, `5 wijzigingen kostten ${vragen} vragen`);
+    });
+
+    test('tags komen er wel degelijk op te staan', async () => {
+      await store.importeer(rijen(20));
+      const klant = (await store.listCustomers({ q: 'Bedrijf 7' }))[0];
+      assert.deepEqual(klant.tags.sort(), ['elektro', 'klant']);
+    });
+
+    test('twee identieke rijen in hetzelfde bestand geven één klant', async () => {
+      const dubbel = [...rijen(3), ...rijen(3)];
+      const r = await store.importeer(dubbel);
+      assert.equal(r.nieuw, 3);
+      assert.equal(r.ongewijzigd, 3, 'de tweede keer is het dezelfde klant, geen nieuwe');
+      assert.equal((await store.listCustomers()).length, 3);
+    });
+  });
+}

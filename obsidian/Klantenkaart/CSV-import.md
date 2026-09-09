@@ -43,6 +43,20 @@ het nummer dat er stond gewoon staan.
 Nederlandse en Engelse namen werken allebei. Komma's en de puntkomma van Excel NL/BE
 worden allebei herkend.
 
+## Snelheid
+
+De import werkt in bulk: één keer alles inlezen, in het geheugen beslissen, en enkel
+schrijven wat echt verandert. Concreet, gemeten met 159 klanten:
+
+| | Databasevragen |
+|---|---|
+| Eerste import, alles nieuw | ~165 |
+| Herimport zonder wijzigingen | 1 |
+| Herimport met 20 wijzigingen | 21 |
+
+Dat maakt een herimport praktisch gratis. Er zijn tests die dit bewaken, zodat een
+latere aanpassing het niet stiekem weer traag maakt.
+
 ## Na afloop
 
 Je krijgt te zien hoeveel rijen **nieuw**, **bijgewerkt**, **ongewijzigd** of

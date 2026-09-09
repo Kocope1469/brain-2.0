@@ -203,48 +203,128 @@ export class Store {
    * Voegt een CRM-export samen met wat er al staat. Bestaande klanten worden
    * bijgewerkt, nooit gedupliceerd; bezoeken, notities, tags en handmatig
    * geplaatste stippen blijven onaangeroerd.
+   *
+   * Deze methode werkt bewust in bulk. Een import die per klant tien losse vragen
+   * aan de database stelt, duurt bij een gehoste database al gauw een halve minuut
+   * en wordt door een serverless platform afgekapt. Nu is het: één keer alles
+   * inlezen, in het geheugen beslissen, en enkel schrijven wat echt verandert.
    */
   async importeer(rijen) {
     const rapport = { nieuw: 0, bijgewerkt: 0, ongewijzigd: 0, mislukt: [] };
 
+    // 1. alles eerst controleren, zonder de database aan te raken
+    const teDoen = [];
     for (const [i, ruw] of rijen.entries()) {
-      const gecontroleerd = validateCustomer(ruw);
-      if (!gecontroleerd.ok) {
-        rapport.mislukt.push({ rij: i + 2, naam: ruw.name ?? '', fouten: gecontroleerd.errors });
-        continue;
-      }
-      const schoon = gecontroleerd.value;
-      const bestaande = await this.vindBestaande(schoon);
+      const res = validateCustomer(ruw);
+      if (res.ok) teDoen.push({ rij: i + 2, waarde: res.value });
+      else rapport.mislukt.push({ rij: i + 2, naam: ruw.name ?? '', fouten: res.errors });
+    }
+    if (!teDoen.length) return rapport;
+
+    // 2. één query voor alle bestaande klanten, en drie manieren om ze terug te vinden
+    const bestaanden = await this.db.all(
+      `SELECT id, ${VELDEN.join(', ')} FROM customers`);
+    const opExternId = new Map();
+    const opBtw = new Map();
+    const opNaamPostcode = new Map();
+    const sleutel = (naam, postcode) => `${String(naam).toLowerCase()}|${postcode}`;
+    for (const k of bestaanden) {
+      if (k.external_id) opExternId.set(k.external_id, k);
+      if (k.vat_number) opBtw.set(k.vat_number, k);
+      if (k.name && k.postal_code) opNaamPostcode.set(sleutel(k.name, k.postal_code), k);
+    }
+    const zoek = (v) => (v.external_id && opExternId.get(v.external_id))
+      || (v.vat_number && opBtw.get(v.vat_number))
+      || (v.name && v.postal_code && opNaamPostcode.get(sleutel(v.name, v.postal_code)))
+      || null;
+
+    // 3. in het geheugen bepalen wat er moet gebeuren
+    const tijd = nu();
+    const tagsPerKlant = [];
+
+    for (const { rij, waarde } of teDoen) {
+      const bestaande = zoek(waarde);
 
       if (!bestaande) {
-        const res = await this.createCustomer(ruw);
-        if (res.ok) rapport.nieuw++;
-        else rapport.mislukt.push({ rij: i + 2, naam: schoon.name, fouten: res.errors });
+        const kolommen = VELDEN.filter((f) => f in waarde);
+        try {
+          const id = await this.db.insert(
+            `INSERT INTO customers (${kolommen.join(', ')}, created_at, updated_at)
+             VALUES (${kolommen.map(() => '?').join(', ')}, ?, ?)`,
+            [...kolommen.map((c) => waarde[c]), tijd, tijd],
+          );
+          rapport.nieuw++;
+          if (waarde.tags?.length) tagsPerKlant.push({ id, tags: waarde.tags });
+          // meteen vindbaar maken: twee rijen met dezelfde klant mogen geen dubbel geven
+          const vers = { id, ...waarde };
+          if (vers.external_id) opExternId.set(vers.external_id, vers);
+          if (vers.vat_number) opBtw.set(vers.vat_number, vers);
+          if (vers.name && vers.postal_code) opNaamPostcode.set(sleutel(vers.name, vers.postal_code), vers);
+        } catch (err) {
+          rapport.mislukt.push({ rij, naam: waarde.name, fouten: [err.message] });
+        }
         continue;
       }
 
       const wijzigingen = {};
       for (const veld of IMPORT_VELDEN) {
-        const nieuw = schoon[veld];
-        if (nieuw !== undefined && nieuw !== '' && nieuw !== bestaande[veld]) wijzigingen[veld] = nieuw;
+        const nieuweWaarde = waarde[veld];
+        if (nieuweWaarde !== undefined && nieuweWaarde !== '' && nieuweWaarde !== bestaande[veld]) {
+          wijzigingen[veld] = nieuweWaarde;
+        }
       }
       // een leeg CRM-id vullen we alsnog aan, zodat de volgende import zeker matcht
-      if (schoon.external_id && !bestaande.external_id) wijzigingen.external_id = schoon.external_id;
+      if (waarde.external_id && !bestaande.external_id) wijzigingen.external_id = waarde.external_id;
       // de stip alleen zetten als er nog geen staat: handmatig werk gaat voor
-      if (bestaande.lat === null && schoon.lat != null) {
-        wijzigingen.lat = schoon.lat;
-        wijzigingen.lon = schoon.lon;
+      if (bestaande.lat === null && waarde.lat != null) {
+        wijzigingen.lat = waarde.lat;
+        wijzigingen.lon = waarde.lon;
       }
 
       if (!Object.keys(wijzigingen).length) {
         rapport.ongewijzigd++;
         continue;
       }
-      const res = await this.updateCustomer(bestaande.id, wijzigingen);
-      if (res.ok) rapport.bijgewerkt++;
-      else rapport.mislukt.push({ rij: i + 2, naam: schoon.name, fouten: res.errors });
+      const kolommen = Object.keys(wijzigingen);
+      try {
+        await this.db.run(
+          `UPDATE customers SET ${kolommen.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE id = ?`,
+          [...kolommen.map((c) => wijzigingen[c]), tijd, bestaande.id],
+        );
+        Object.assign(bestaande, wijzigingen);
+        rapport.bijgewerkt++;
+      } catch (err) {
+        rapport.mislukt.push({ rij, naam: waarde.name, fouten: [err.message] });
+      }
     }
+
+    // 4. tags van de nieuwe klanten in één keer koppelen
+    if (tagsPerKlant.length) await this.#koppelTagsInBulk(tagsPerKlant);
+
     return rapport;
+  }
+
+  /** Zet tags voor veel klanten tegelijk, met een handvol queries in plaats van per klant. */
+  async #koppelTagsInBulk(tagsPerKlant) {
+    const alleNamen = [...new Set(tagsPerKlant.flatMap((t) => t.tags))];
+    const bestaande = new Map(
+      (await this.db.all('SELECT id, name FROM tags')).map((t) => [t.name, t.id]),
+    );
+    for (const naam of alleNamen) {
+      if (!bestaande.has(naam)) {
+        bestaande.set(naam, await this.db.insert('INSERT INTO tags(name) VALUES(?)', [naam]));
+      }
+    }
+
+    const koppels = tagsPerKlant.flatMap(({ id, tags }) => tags.map((t) => [id, bestaande.get(t)]));
+    // in stukken: databases hebben een grens op het aantal parameters per query
+    for (let i = 0; i < koppels.length; i += 500) {
+      const stuk = koppels.slice(i, i + 500);
+      await this.db.run(
+        `INSERT INTO customer_tags(customer_id, tag_id) VALUES ${stuk.map(() => '(?, ?)').join(', ')}`,
+        stuk.flat(),
+      );
+    }
   }
 
   // ---------- overzicht ----------

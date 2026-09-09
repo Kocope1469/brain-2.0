@@ -1,11 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
   ],
   "functions": {
     "api/index.js": {
-      "maxDuration": 15
+      "maxDuration": 60
     }
   },
   "headers": [
@@ -16,12 +19,30 @@
           "key": "content-security-policy",
           "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
         },
-        { "key": "x-content-type-options", "value": "nosniff" },
-        { "key": "x-frame-options", "value": "DENY" },
-        { "key": "referrer-policy", "value": "same-origin" },
-        { "key": "permissions-policy", "value": "geolocation=(self), camera=(), microphone=(), payment=()" },
-        { "key": "cross-origin-opener-policy", "value": "same-origin" },
-        { "key": "strict-transport-security", "value": "max-age=15552000; includeSubDomains" }
+        {
+          "key": "x-content-type-options",
+          "value": "nosniff"
+        },
+        {
+          "key": "x-frame-options",
+          "value": "DENY"
+        },
+        {
+          "key": "referrer-policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "permissions-policy",
+          "value": "geolocation=(self), camera=(), microphone=(), payment=()"
+        },
+        {
+          "key": "cross-origin-opener-policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "strict-transport-security",
+          "value": "max-age=15552000; includeSubDomains"
+        }
       ]
     }
   ]
