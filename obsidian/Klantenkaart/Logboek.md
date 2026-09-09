@@ -91,3 +91,31 @@ Onderweg vier dingen die stuk gingen en wat ze leerden:
 > eigen tijdslimieten en eigen negeerregels — en al helemaal niets over een externe
 > dienst die morgen zijn prijs verandert. **Wat je niet zelf in handen hebt, kan
 > wegvallen; zorg dat de standaardweg erbuiten loopt.**
+
+## 9 september 2026, namiddag — bruikbaar gemaakt
+
+Vier aanpassingen, allemaal op vraag van Kobe nadat hij met de echte data gewerkt had.
+
+- **Vier achtergrondkaarten**, alle vier nagekeken en werkend. *Rustig* is de
+  standaard omdat die aan geen enkele externe dienst hangt.
+- **De keuzelijst naast de kaart.** Onder de tellingen staan nu de klanten zelf, op
+  naam, met gemeente en hoe lang geleden. Volgt de zoekterm en de filters. Op een gsm
+  niet: daar bleef er na de tellingen 57px over — ruimte voor één naam. De knop
+  *Lijst* doet daar hetzelfde over het volle scherm.
+- **"Bezocht door"** bij een bezoek: een keuzelijst met de collega's. Wie het intikt
+  is niet altijd wie er geweest is. Niet te verwarren met *Met wie gesproken* — dat
+  is de contactpersoon bij de klant.
+- **Een bezoek achteraf rechtzetten** met het potloodje. Voordien moest je het wissen
+  en opnieuw intikken, en dan was de rest van je verslag weg.
+
+> [!note] Wat de cijfers die dag zeiden
+> 154 blauw, 0 groen, 0 oranje, 0 rood. De kleurgrenzen die net op 180/300 gezet waren,
+> deden dus niets: er stond geen enkel bezoek in. Op dat moment was het een
+> adressenkaart, geen bezoekplanning. **Het bouwen was niet meer wat het project
+> tegenhield — het invullen wel.** Die avond stond het eerste bezoek erin
+> (Electro Goeminne, 3 september).
+
+## Waar het morgen verder gaat
+
+Zie [[Openstaande punten]]. Kort: twee geweigerde CSV-regels rechtzetten, elf klanten
+handmatig plaatsen, en vooral bezoekdata invoeren.

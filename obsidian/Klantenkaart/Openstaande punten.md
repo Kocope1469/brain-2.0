@@ -12,6 +12,12 @@ Onderdeel van [[Klantenkaart]].
 
 ## Nu doen
 
+- [ ] **Bezoekdata invoeren.** Op 9 september stonden 154 van de 156 klanten op blauw:
+      geen enkel bezoek genoteerd. Zolang dat zo is, doen de kleurgrenzen niets en is
+      dit een adressenkaart in plaats van een bezoekplanning. Twee wegen, of een
+      mengvorm: vanaf nu elk bezoek noteren (duurt maanden voor de kaart spreekt), of
+      de laatste bezoekdatum uit Excel/agenda terughalen voor de klanten die er echt
+      toe doen (zwaar werk, maar dan werkt de kaart meteen).
 - [ ] Twee geweigerde CSV-regels rechtzetten en opnieuw importeren: **ENERSOL SRL**
       (ongeldig btw-nummer) en **ELETECHNIK BELGIUM** (ongeldig e-mailadres). Die
       twee klanten zitten niet in de app. Zie [[CSV-import]].
@@ -28,6 +34,9 @@ Onderdeel van [[Klantenkaart]].
 - [x] [[Kleurgrenzen]] gekozen: groen tot 180 dagen, oranje tot 300 dagen
 - [x] Achtergrondkaart: vier keuzes, alle vier nagekeken en werkend
       ([[Wat het doet]])
+- [x] Keuzelijst met klanten naast de kaart, onder de tellingen
+- [x] Bij een bezoek kiezen welke collega er geweest is
+- [x] Een genoteerd bezoek achteraf kunnen rechtzetten
 
 ## Bewust niet gebouwd
 
