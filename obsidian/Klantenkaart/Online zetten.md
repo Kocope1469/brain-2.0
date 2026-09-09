@@ -50,6 +50,10 @@ Onderdeel van [[Klantenkaart]]. **Dit is de eerstvolgende stap.** Reken op een h
 > De app leest de database bij het opstarten. Koppel je de database zonder daarna
 > te redeployen, dan blijft de oude versie zonder database draaien.
 
+> [!example] "Kon de klanten niet laden" na de eerste deploy
+> Dat is normaal en verwacht: de app staat er, maar er is nog geen database. De
+> melding zegt zelf wat je moet doen. Ga verder met stap 4.
+
 ## Als er iets misgaat
 
 Kijk eerst in de Vercel-logs naar de regel `[klantenkaart] opslag: …` bij het

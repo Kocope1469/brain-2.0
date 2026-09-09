@@ -284,7 +284,20 @@ export function beschrijfOpslag(omgeving = process.env) {
     : `SQLite-bestand ${pad}`;
 }
 
+/** Draaien we op een platform met een tijdelijke, niet-schrijfbare schijf? */
+export const isServerless = (omgeving = process.env) =>
+  !!(omgeving.VERCEL || omgeving.AWS_LAMBDA_FUNCTION_NAME || omgeving.NETLIFY);
+
 export async function openDb({ url = vindDatabaseUrl()?.url, file } = {}) {
+  // zonder database op een serverless platform is er geen zinnige uitweg: de schijf
+  // is niet schrijfbaar, en wél schrijven zou betekenen dat alles stil verdwijnt
+  if (!url && !file && isServerless()) {
+    throw new Error(
+      'Geen database ingesteld. Koppel een Postgres-database (Storage → Create Database → Neon) '
+      + `en zet het adres onder een van deze namen: ${URL_NAMEN.join(', ')}. `
+      + 'Deploy daarna opnieuw.',
+    );
+  }
   let db;
   if (url) {
     const { default: pg } = await import('pg');

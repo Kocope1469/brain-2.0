@@ -7,16 +7,26 @@ async function vraag(pad, opties = {}) {
     body: opties.body ? JSON.stringify(opties.body) : undefined,
   });
   const tekst = await res.text();
-  const data = tekst ? JSON.parse(tekst) : null;
+
+  // niet blind parsen: gaat de server of het hostingplatform onderuit, dan komt
+  // er een tekstpagina terug en zou JSON.parse een onbegrijpelijke fout geven
+  let data = null;
+  try {
+    data = tekst ? JSON.parse(tekst) : null;
+  } catch {
+    if (res.ok) throw new Error('De server gaf een onverwacht antwoord.');
+  }
+
   if (res.status === 401) {
     location.replace('/login');
     throw new Error('Niet meer aangemeld.');
   }
   if (!res.ok) {
-    const fouten = data?.errors ?? ['Er ging iets mis.'];
+    const fouten = data?.errors ?? [`De server antwoordde met een fout (${res.status}).`];
     const err = new Error(fouten[0]);
     err.fouten = fouten;
     err.status = res.status;
+    if (data?.hulp) err.fouten.push(data.hulp);
     throw err;
   }
   return data;

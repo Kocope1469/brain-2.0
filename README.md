@@ -37,7 +37,7 @@ van dat bestand.
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 123 tests op SQLite
+npm test         # 128 tests op SQLite
 ```
 
 ## Online zetten op Vercel — stap voor stap
@@ -53,8 +53,11 @@ De app werkt met allebei: SQLite als je lokaal werkt, Postgres zodra je een
 GitHub-account is het eenvoudigst.
 
 **3. Importeer het project.** Klik *Add New → Project*, kies deze repository en klik
-*Import*. Laat alle instellingen staan zoals ze zijn en klik *Deploy*. De eerste keer
-werkt de app nog niet volledig; dat is normaal, de database komt in de volgende stap.
+*Import*. Laat alle instellingen staan zoals ze zijn (Framework Preset: *Other*, geen
+build command) en klik *Deploy*.
+
+Na de deploy zie je de kaart, maar met de melding "Geen database ingesteld". Dat is
+normaal: de app staat er, de opslag komt in de volgende stap.
 
 **4. Maak een database.** Ga in je project naar het tabblad *Storage* → *Create
 Database* → kies **Neon** (Postgres). Neem het gratis plan; dat is ruim voldoende voor
@@ -234,7 +237,7 @@ server/
   seed.js        voorbeeldklanten
 public/          de interface: kaart, dossier, formulieren, inlogpagina, iconen
   beveiliging.js hashes, sessietokens, inlogpogingen, headers
-test/            197 tests, die allemaal op beide databases draaien
+test/            202 tests, die allemaal op beide databases draaien
 ```
 
 ## Testen

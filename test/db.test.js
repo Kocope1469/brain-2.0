@@ -79,3 +79,68 @@ if (process.env.TEST_DATABASE_URL) {
     });
   });
 }
+
+describe('geen database op een hostingplatform', () => {
+  test('openDb weigert te starten in plaats van naar een tijdelijke schijf te schrijven', async () => {
+    const bewaard = { ...process.env };
+    for (const naam of ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_URL_NON_POOLING',
+      'POSTGRES_PRISMA_URL', 'NEON_DATABASE_URL', 'KLANTENKAART_DB']) delete process.env[naam];
+    process.env.VERCEL = '1';
+    try {
+      await assert.rejects(() => openDb(), (err) => {
+        assert.match(err.message, /Geen database ingesteld/);
+        assert.match(err.message, /DATABASE_URL/);
+        assert.match(err.message, /Deploy daarna opnieuw/);
+        return true;
+      });
+    } finally {
+      process.env = bewaard;
+    }
+  });
+
+  test('lokaal blijft SQLite gewoon werken', async () => {
+    const db = await openDb({ file: ':memory:' });
+    assert.equal(db.dialect, 'sqlite');
+    await db.close();
+  });
+});
+
+describe('de serverless-ingang', () => {
+  test('geeft nette JSON in plaats van een tekstpagina, en probeert het nadien opnieuw', async () => {
+    const bewaard = { ...process.env };
+    for (const naam of ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_URL_NON_POOLING',
+      'POSTGRES_PRISMA_URL', 'NEON_DATABASE_URL', 'KLANTENKAART_DB']) delete process.env[naam];
+    process.env.VERCEL = '1';
+
+    const stille = console.error;
+    console.error = () => {};
+    try {
+      const { default: handler } = await import('../api/index.js');
+      const antwoord = async () => {
+        let body = '';
+        const res = {
+          statusCode: 0, headers: {},
+          setHeader(k, v) { this.headers[k] = v; },
+          end(t) { body = t; return this; },
+        };
+        await handler({ method: 'GET', url: '/api/klanten', headers: {} }, res);
+        return { status: res.statusCode, type: res.headers['content-type'], body };
+      };
+
+      const eerste = await antwoord();
+      assert.equal(eerste.status, 503);
+      assert.match(eerste.type, /application\/json/);
+      const gelezen = JSON.parse(eerste.body); // dit is precies wat vroeger stukliep
+      assert.match(gelezen.errors[0], /Geen database ingesteld/);
+      assert.ok(gelezen.hulp);
+
+      // een tweede aanvraag mag niet blijven hangen op de mislukte eerste
+      const tweede = await antwoord();
+      assert.equal(tweede.status, 503);
+      assert.match(JSON.parse(tweede.body).errors[0], /Geen database ingesteld/);
+    } finally {
+      console.error = stille;
+      process.env = bewaard;
+    }
+  });
+});
