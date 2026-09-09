@@ -50,6 +50,18 @@ async function ververs({ pasAan = false } = {}) {
 
   await ververTellingen();
   toonZonderStip();
+  if (!staat.geselecteerd) toonKeuze();
+}
+
+/**
+ * Het rechterpaneel zolang er geen klant gekozen is: de tellingen per kleur, en
+ * daaronder dezelfde klanten als op de kaart. Wordt vanuit `ververs` opgeroepen,
+ * zodat zoeken en filteren de lijst meteen meenemen.
+ */
+function toonKeuze() {
+  toonLeeg(el.dossier, staat.tellingen, staat.klanten, {
+    onKies: (id) => selecteer(id, { vlieg: true }),
+  });
 }
 
 async function ververTellingen() {
@@ -181,8 +193,7 @@ async function selecteer(id, { vlieg = true } = {}) {
     naWijziging: async ({ deselecteer = false } = {}) => {
       if (deselecteer) {
         staat.geselecteerd = null;
-        await ververs();
-        toonLeeg(el.dossier, staat.tellingen);
+        await ververs();   // tekent meteen weer de keuzelijst
       } else {
         await ververs();
         await selecteer(id, { vlieg: false });
@@ -281,7 +292,6 @@ document.getElementById('instellingen').onclick = () => instellingenFormulier(as
   await ververs();
   // het dossier toont de kleurgroep ook, dus dat moet mee
   if (staat.geselecteerd) await selecteer(staat.geselecteerd, { vlieg: false });
-  else toonLeeg(el.dossier, staat.tellingen);
 });
 document.getElementById('uitloggen').onclick = async () => {
   await api.uitloggen();
@@ -302,7 +312,6 @@ el.kaartlaag.onchange = () => kaart.zetLaag(el.kaartlaag.value);
       if (bewaard === 'lijst') zetWeergave('lijst');
     } catch { /* geen opslag beschikbaar */ }
     await ververs({ pasAan: true });
-    toonLeeg(el.dossier, staat.tellingen);
   } catch (err) {
     toast(err.message, 'fout');
     el.dossier.innerHTML = `<p class="leeg">Kon de klanten niet laden.<br><span class="muted">${esc(err.message)}</span></p>`;

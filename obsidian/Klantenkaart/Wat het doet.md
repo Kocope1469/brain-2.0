@@ -54,6 +54,19 @@ sorteren — handig om te zien wie je het langst niet gezien hebt, of om een pro
 in één oogopslag te overlopen. Een rij aanklikken opent hetzelfde dossier als een
 stip op de kaart.
 
+## Het paneel rechts
+
+Zolang je geen klant gekozen hebt, staat rechts van de kaart de telling per kleur en
+daaronder **de klanten zelf**, op naam gesorteerd, met hun gemeente en hoe lang je er
+niet geweest bent. Die lijst volgt exact de zoekterm en de filters: wat je op de kaart
+ziet, staat ernaast. Handig voor wie achter een andere stip verscholen zit of buiten
+beeld valt. Een naam aanklikken vliegt naar zijn stip en opent het dossier; sluit je
+het dossier, dan staat de lijst er weer.
+
+Op een gsm staat dat paneel ónder de kaart en blijft er te weinig hoogte over voor een
+bruikbare lijst — daar tonen we alleen de tellingen. De knop **Lijst** bovenaan geeft
+op een gsm hetzelfde overzicht over het volle scherm.
+
 ## De achtergrondkaart
 
 Onder *Filter* staat een keuze voor de achtergrondkaart:

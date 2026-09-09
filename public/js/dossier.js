@@ -4,12 +4,60 @@ import { klantFormulier, bezoekFormulier } from './forms.js';
 
 const regel = (label, waarde) => (waarde ? `<div class="veld"><dt>${esc(label)}</dt><dd>${waarde}</dd></div>` : '');
 
-/** Het lege dossier: welke klant je ook kiest, hier komt hij terecht. */
-export function toonLeeg(el, tellingen) {
+/**
+ * Op naam sorteren, zoals in een telefoonboek: `localeCompare` zet Ç bij C en
+ * negeert hoofdletters, wat een gewone `<` niet doet.
+ */
+const opNaam = (a, b) => String(a.name ?? '').localeCompare(String(b.name ?? ''), 'nl', { sensitivity: 'base' });
+
+/**
+ * De klantenlijst onder de tellingen, als HTML. Apart gehouden zodat de volgorde,
+ * het aantal en het ontsnappen van namen te testen zijn zonder browser.
+ */
+export function keuzelijst(klanten = [], tellingen = null) {
+  const lijst = [...klanten].sort(opNaam);
+  const totaal = tellingen?.totaal ?? lijst.length;
+  return `
+    <div class="zijlijst">
+      <p class="zijlijst-kop">${lijst.length === 1 ? '1 klant' : `${lijst.length} klanten`}${
+  lijst.length < totaal ? ' (gefilterd)' : ''}</p>
+      ${lijst.length
+    ? `<ul class="zijlijst-rijen">${lijst.map(zijlijstRij).join('')}</ul>`
+    : '<p class="zijlijst-leeg">Geen klant voldoet aan de filters.</p>'}
+    </div>`;
+}
+
+/** Eén regel in de zijlijst. */
+function zijlijstRij(k) {
+  const plaats = [k.postal_code, k.city].filter(Boolean).join(' ');
+  return `
+    <li>
+      <button type="button" class="zijrij" data-id="${k.id}"
+              title="${esc(k.name)} — ${esc(geleden(k.laatste_bezoek))}">
+        <span class="bol${k.op_kaart ? '' : ' leeg'}" style="${k.op_kaart ? `background:${KLEUREN[k.bucket]}` : ''}"></span>
+        <span class="zijrij-tekst">
+          <strong>${esc(k.name)}</strong>
+          ${plaats ? `<span class="zijrij-plaats">${esc(plaats)}</span>` : ''}
+        </span>
+        <span class="zijrij-tijd">${esc(geleden(k.laatste_bezoek))}</span>
+      </button>
+    </li>`;
+}
+
+/**
+ * Het lege dossier: welke klant je ook kiest, hier komt hij terecht.
+ *
+ * Zolang er geen klant gekozen is, staat er bovenaan de telling per kleur en
+ * daaronder de klanten zelf. Die lijst volgt exact de zoekterm en de filters, dus
+ * je ziet altijd wie er nú op de kaart staat -- ook wie buiten beeld valt of achter
+ * een andere stip verscholen zit.
+ */
+export function toonLeeg(el, tellingen, klanten = [], { onKies } = {}) {
+  el.classList.add('toont-keuze');
   el.innerHTML = `
     <div class="dossier-leeg">
       <h2>Kies een klant</h2>
-      <p>Klik een stip op de kaart, of zoek bovenaan op naam of stad.</p>
+      <p>Klik een stip op de kaart, of kies er hieronder een uit de lijst.</p>
       ${tellingen ? `
         <ul class="legende">
           <li><span class="bol" style="background:${KLEUREN.nieuw}"></span> ${tellingen.nieuw ?? 0} nog nooit bezocht</li>
@@ -18,7 +66,12 @@ export function toonLeeg(el, tellingen) {
           <li><span class="bol" style="background:${KLEUREN.lang}"></span> ${tellingen.lang} lang niet bezocht</li>
           ${tellingen.zonder_stip ? `<li><span class="bol leeg"></span> ${tellingen.zonder_stip} nog niet op de kaart</li>` : ''}
         </ul>` : ''}
-    </div>`;
+    </div>
+    ${keuzelijst(klanten, tellingen)}`;
+
+  for (const knop of el.querySelectorAll('.zijrij')) {
+    knop.onclick = () => onKies?.(Number(knop.dataset.id));
+  }
 }
 
 /**
@@ -27,6 +80,7 @@ export function toonLeeg(el, tellingen) {
  */
 export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
   const k = await api.klant(id);
+  el.classList.remove('toont-keuze');
   const adres = [k.street, [k.postal_code, k.city].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>');
 
   el.innerHTML = `
