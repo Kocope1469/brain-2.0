@@ -1,3 +1,6 @@
-data/
-test/
+# Let op: deze patronen werken zoals in .gitignore. Een pad zonder schuine streep
+# vooraan sluit die naam op ELK niveau uit — "data/" haalde ook server/data/ weg,
+# waardoor de app op Vercel omviel. Anker daarom alles wat in de hoofdmap staat.
+/data/
+/test/
 *.log

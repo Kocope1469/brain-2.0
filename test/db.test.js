@@ -242,3 +242,45 @@ describe('bestand not found mag de app niet stilletjes slopen', () => {
     assert.match(config.functions['api/index.js'].includeFiles ?? '', /public/);
   });
 });
+
+/**
+ * .vercelignore werkt zoals .gitignore: "data/" sluit elke map met die naam uit,
+ * op elk niveau. Dat haalde ooit server/data/ uit de bundel en brak de app in
+ * productie. Deze test kijkt of geen enkel patroon iets uitsluit dat de server
+ * nodig heeft.
+ */
+describe('wat er naar de hosting gaat', () => {
+  test('.vercelignore sluit niets uit dat de server importeert', async () => {
+    const { readFile, readdir } = await import('node:fs/promises');
+    const wortel = new URL('../', import.meta.url);
+    const patronen = (await readFile(new URL('.vercelignore', wortel), 'utf8'))
+      .split('\n').map((r) => r.trim()).filter((r) => r && !r.startsWith('#'));
+
+    // alles wat de server nodig heeft, verzameld uit de mappen zelf
+    const nodig = [];
+    for (const map of ['server', 'server/data', 'public', 'api']) {
+      for (const naam of await readdir(new URL(map, wortel))) {
+        if (naam.includes('.')) nodig.push(`${map}/${naam}`);
+      }
+    }
+
+    for (const patroon of patronen) {
+      const kaal = patroon.replace(/\/$/, '');
+      const geankerd = kaal.startsWith('/');
+      const naam = geankerd ? kaal.slice(1) : kaal;
+      const geraakt = nodig.filter((pad) => (geankerd
+        ? pad === naam || pad.startsWith(`${naam}/`)
+        : pad.split('/').includes(naam)));
+      assert.deepEqual(geraakt, [],
+        `patroon "${patroon}" sluit bestanden uit die de server nodig heeft; zet er een / voor`);
+    }
+  });
+
+  test('de plaatsenlijst is een module, geen los gegevensbestand', async () => {
+    const { readdir } = await import('node:fs/promises');
+    const bestanden = await readdir(new URL('../server/data/', import.meta.url));
+    assert.ok(bestanden.includes('be-plaatsen.js'), 'be-plaatsen.js hoort er te staan');
+    assert.deepEqual(bestanden.filter((b) => b.endsWith('.json')), [],
+      'gegevens die de server nodig heeft horen in een .js-module, niet in JSON');
+  });
+});
