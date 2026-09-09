@@ -3,15 +3,23 @@
  * handler als bij `npm start`. De app wordt één keer per instantie opgebouwd
  * en daarna hergebruikt, zodat niet elke aanvraag een nieuwe databaseverbinding
  * opzet.
+ *
+ * De app wordt bewust pas ín de handler ingeladen. Zou dat bovenaan gebeuren en
+ * er ging iets mis bij het laden, dan valt de hele functie om vóór onze
+ * foutafhandeling draait, en zie je enkel een kale 500 zonder uitleg.
  */
-import { bouwApp } from '../server/index.js';
 
 let appBelofte;
+
+async function bouw() {
+  const { bouwApp } = await import('../server/index.js');
+  return bouwApp();
+}
 
 export default async function handler(req, res) {
   let app;
   try {
-    appBelofte ??= bouwApp();
+    appBelofte ??= bouw();
     app = await appBelofte;
   } catch (err) {
     // een mislukte start niet onthouden: anders blijft deze instantie stuk,

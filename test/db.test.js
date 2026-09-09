@@ -204,3 +204,41 @@ describe('twee valkuilen die de zoektocht zelf met zich meebracht', () => {
     }
   });
 });
+
+/**
+ * Een bestand dat pas tijdens het draaien van schijf gelezen wordt, kan op een
+ * serverless platform ontbreken. Gebeurt dat bovenaan een module, dan valt de hele
+ * functie om vóór enige foutafhandeling draait en zie je een kale 500 zonder uitleg.
+ * Dat is één keer gebeurd; deze tests moeten voorkomen dat het terugkomt.
+ */
+describe('bestand not found mag de app niet stilletjes slopen', () => {
+  test('de serverless-ingang laadt de app pas binnen zijn foutafhandeling', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const bron = await readFile(new URL('../api/index.js', import.meta.url), 'utf8');
+    const bovenaan = bron.slice(0, bron.indexOf('export default'));
+    assert.ok(!/^import .*server\/index\.js/m.test(bovenaan),
+      'de app hoort binnen de handler geladen te worden, niet met een import bovenaan');
+    assert.match(bron, /await import\(/);
+  });
+
+  test('geen enkele servermodule leest gegevens van schijf bij het laden', async () => {
+    const { readdir, readFile } = await import('node:fs/promises');
+    const map = new URL('../server/', import.meta.url);
+    const overtreders = [];
+    for (const naam of await readdir(map)) {
+      if (!naam.endsWith('.js')) continue;
+      const bron = await readFile(new URL(naam, map), 'utf8');
+      // readFile voor statische bestanden zit binnen een functie en is prima;
+      // readFileSync op moduleniveau is dat niet
+      if (/^const .*=.*readFileSync\(/m.test(bron)) overtreders.push(naam);
+    }
+    assert.deepEqual(overtreders, [],
+      'zet die gegevens in een .js-module met een export; dan neemt elke bundelaar ze mee');
+  });
+
+  test('vercel.json neemt de publieke bestanden mee in de functie', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+    assert.match(config.functions['api/index.js'].includeFiles ?? '', /public/);
+  });
+});

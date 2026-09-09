@@ -37,7 +37,7 @@ van dat bestand.
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 157 tests op SQLite
+npm test         # 160 tests op SQLite
 ```
 
 ## Online zetten op Vercel — stap voor stap
@@ -240,7 +240,7 @@ server/
   seed.js        voorbeeldklanten
 public/          de interface: kaart, dossier, formulieren, inlogpagina, iconen
   beveiliging.js hashes, sessietokens, inlogpogingen, headers
-test/            241 tests, die allemaal op beide databases draaien
+test/            244 tests, die allemaal op beide databases draaien
 ```
 
 ## Testen

@@ -1,18 +1,13 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import PLAATSEN from './data/be-plaatsen.js';
 
 /**
  * Klanten op de kaart zetten zonder externe dienst.
  *
- * In server/data/be-plaatsen.json staat voor 1720 Belgische plaatsnamen het
+ * In server/data/be-plaatsen.js staat voor 1720 Belgische plaatsnamen het
  * middelpunt. Dat is genoeg om te zien wie er bij elkaar in de buurt zit, en het
  * werkt onmiddellijk: geen wachtrij, geen limiet, geen internet nodig. Wie een
  * stip preciezer wil, versleept hem zelf of laat het adres opzoeken.
  */
-
-const HIER = dirname(fileURLToPath(import.meta.url));
-const PLAATSEN = JSON.parse(readFileSync(join(HIER, 'data', 'be-plaatsen.json'), 'utf8'));
 
 /** Namen vergelijkbaar maken: zonder accenten, streepjes, spaties of hoofdletters. */
 export const naamSleutel = (naam) => String(naam ?? '')
