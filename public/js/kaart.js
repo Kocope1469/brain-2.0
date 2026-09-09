@@ -1,8 +1,56 @@
 import { KLEUREN, esc } from './util.js';
 
+/** De eerder gekozen kaartlaag, of de standaard. */
+function gekozenLaag() {
+  try {
+    return localStorage.getItem('kk_kaartlaag') ?? STANDAARDLAAG;
+  } catch {
+    return STANDAARDLAAG;
+  }
+}
+
 const START = { midden: [50.85, 4.35], zoom: 8 }; // België in beeld
-const TEGELS = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATTRIBUTIE = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-bijdragers';
+
+const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-bijdragers';
+const CARTO = `${OSM}, &copy; <a href="https://carto.com/attributions">CARTO</a>`;
+
+/**
+ * De achtergrondkaart. De standaardkaart van OpenStreetMap toont élk gehucht en
+ * elke landweg; met honderden stippen erover wordt dat druk. De rustige varianten
+ * laten weg wat er voor dit doel niet toe doet, zodat de stippen opvallen.
+ */
+export const KAARTLAGEN = {
+  rustig: {
+    naam: 'Rustig',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    subdomains: 'abcd',
+    attributie: CARTO,
+    maxZoom: 20,
+  },
+  kleur: {
+    naam: 'Kleur',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: 'abcd',
+    attributie: CARTO,
+    maxZoom: 20,
+  },
+  donker: {
+    naam: 'Donker',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    subdomains: 'abcd',
+    attributie: CARTO,
+    maxZoom: 20,
+  },
+  detail: {
+    naam: 'Alle details',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdomains: 'abc',
+    attributie: OSM,
+    maxZoom: 19,
+  },
+};
+
+export const STANDAARDLAAG = 'rustig';
 
 /**
  * De kaart met één stip per klant, gekleurd naar hoe lang geleden je er was.
@@ -12,6 +60,42 @@ const ATTRIBUTIE = '&copy; <a href="https://www.openstreetmap.org/copyright">Ope
  * kloppen; we melden het en gaan door.
  */
 export class Kaart {
+  /** Welke achtergrondkaart is er nu gekozen? */
+  get laagnaam() {
+    return this.huidigeLaag;
+  }
+
+  /**
+   * Wisselt van achtergrondkaart. De keuze wordt per browser onthouden; het is een
+   * kwestie van smaak, niet iets dat voor iedereen hetzelfde hoeft te zijn.
+   */
+  zetLaag(sleutel) {
+    const keuze = KAARTLAGEN[sleutel] ? sleutel : STANDAARDLAAG;
+    if (this.huidigeLaag === keuze && this.laag) return;
+    this.huidigeLaag = keuze;
+    const spec = KAARTLAGEN[keuze];
+
+    if (this.laag) this.laag.remove();
+    this.laag = L.tileLayer(spec.url, {
+      maxZoom: spec.maxZoom,
+      attribution: spec.attributie,
+      subdomains: spec.subdomains,
+    });
+    let gemeld = false;
+    this.laag.on('tileerror', () => {
+      if (gemeld) return;
+      gemeld = true;
+      this.onTegelfout?.();
+    });
+    this.laag.addTo(this.map);
+
+    try {
+      localStorage.setItem('kk_kaartlaag', keuze);
+    } catch {
+      // privémodus of geblokkeerde opslag: dan geldt de keuze alleen deze sessie
+    }
+  }
+
   constructor(elementId, { onSelecteer, onPlaats, onTegelfout } = {}) {
     this.onSelecteer = onSelecteer ?? (() => {});
     this.onPlaats = onPlaats ?? (() => {});
@@ -22,14 +106,9 @@ export class Kaart {
     this.map = L.map(elementId, { zoomControl: true, attributionControl: true })
       .setView(START.midden, START.zoom);
 
-    const laag = L.tileLayer(TEGELS, { maxZoom: 19, attribution: ATTRIBUTIE });
-    let gemeld = false;
-    laag.on('tileerror', () => {
-      if (gemeld) return;
-      gemeld = true;
-      onTegelfout?.();
-    });
-    laag.addTo(this.map);
+    this.onTegelfout = onTegelfout;
+    this.laag = null;
+    this.zetLaag(gekozenLaag());
 
     this.map.on('click', (e) => {
       if (this.plaatsModus) this.onPlaats(e.latlng.lat, e.latlng.lng);

@@ -18,6 +18,10 @@
 <body>
   <header class="balk">
     <input id="zoek" class="zoek" type="search" autocomplete="off" placeholder="Zoek klant of stad">
+    <div class="weergave" role="group" aria-label="Weergave">
+      <button class="weergaveknop actief" id="toon-kaart" aria-pressed="true">Kaart</button>
+      <button class="weergaveknop" id="toon-lijst" aria-pressed="false">Lijst</button>
+    </div>
     <button class="btn" id="filter" aria-expanded="false">
       <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
         <path d="M1 2.5h14L9.5 8.8V14L6.5 12.4V8.8z"/>
@@ -34,6 +38,8 @@
   </nav>
 
   <div class="filterlade" id="filterlade" hidden>
+    <label for="kaartlaag">Kaart</label>
+    <select id="kaartlaag"></select>
     <label for="provincie">Regio</label>
     <select id="provincie"><option value="">Heel België</option></select>
     <label for="tag">Tag</label>
@@ -51,6 +57,7 @@
   <div class="werkblad">
     <section class="kaartvak">
       <div id="kaart" role="application" aria-label="Kaart met klanten"></div>
+      <div id="lijst" class="lijst" hidden></div>
       <p class="kaartmelding" id="kaartmelding" hidden></p>
       <div class="plaatsbalk" id="plaatsbalk" hidden>
         <span id="plaatstekst"></span>

@@ -3,8 +3,9 @@ import { nu } from './db.js';
 
 /**
  * Beveiligingsheaders. Ze staan hier bij elkaar zodat duidelijk is wat er wel en
- * niet mag: scripts en stijlen enkel van onszelf, kaarttegels enkel van
- * OpenStreetMap, en de pagina mag niet in een frame van iemand anders staan.
+ * niet mag: scripts en stijlen enkel van onszelf, kaarttegels enkel van de twee
+ * diensten die we gebruiken, en de pagina mag niet in een frame van iemand anders
+ * staan.
  *
  * 'unsafe-inline' voor stijlen is nodig omdat Leaflet zijn kaartlagen met
  * style-attributen positioneert. Voor scripts staat het er bewust níet:
@@ -15,7 +16,7 @@ export const HEADERS = {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org",
+    "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
     "connect-src 'self'",
     "font-src 'self'",
     "form-action 'self'",

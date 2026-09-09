@@ -1,6 +1,7 @@
 import { api, probeer } from './api.js';
 import { esc, toast, opties } from './util.js';
-import { Kaart } from './kaart.js';
+import { Kaart, KAARTLAGEN } from './kaart.js';
+import { toonLijst } from './lijst.js';
 import { toonDossier, toonLeeg } from './dossier.js';
 import { klantFormulier, importFormulier, gebruikersFormulier, instellingenFormulier } from './forms.js';
 
@@ -15,9 +16,16 @@ const el = {
   melding: document.getElementById('kaartmelding'),
   plaatsbalk: document.getElementById('plaatsbalk'),
   plaatstekst: document.getElementById('plaatstekst'),
+  lijst: document.getElementById('lijst'),
+  kaartvak: document.getElementById('kaart'),
+  kaartlaag: document.getElementById('kaartlaag'),
 };
 
-const staat = { q: '', bucket: '', tag: '', provincie: '', zonderStipOpen: false, klanten: [], geselecteerd: null, plaatstVoor: null };
+const staat = {
+  q: '', bucket: '', tag: '', provincie: '', zonderStipOpen: false,
+  klanten: [], geselecteerd: null, plaatstVoor: null,
+  weergave: 'kaart', sorteerOp: 'name', sorteerOmgekeerd: false,
+};
 
 const kaart = new Kaart('kaart', {
   onSelecteer: (id) => selecteer(id, { vlieg: false }),
@@ -35,6 +43,7 @@ async function ververs({ pasAan = false } = {}) {
   });
   kaart.toon(staat.klanten, staat.geselecteerd);
   if (pasAan) kaart.pasAan(staat.klanten);
+  if (staat.weergave === 'lijst') tekenLijst();
 
   const zichtbaar = staat.klanten.some((k) => k.id === staat.geselecteerd);
   if (staat.geselecteerd && !zichtbaar) kaart.markeer(staat.klanten, staat.geselecteerd);
@@ -128,9 +137,43 @@ async function plaatsAllemaal() {
   }
 }
 
+/** Tekent de lijst met de klanten die nu ook op de kaart zouden staan. */
+function tekenLijst() {
+  toonLijst(el.lijst, staat.klanten, staat, {
+    onKies: (id) => selecteer(id, { vlieg: false }),
+    onSorteer: (sleutel) => {
+      if (staat.sorteerOp === sleutel) staat.sorteerOmgekeerd = !staat.sorteerOmgekeerd;
+      else { staat.sorteerOp = sleutel; staat.sorteerOmgekeerd = false; }
+      tekenLijst();
+    },
+  });
+}
+
+/** Wisselt tussen de kaart en de lijst; de filters blijven staan. */
+function zetWeergave(welke) {
+  staat.weergave = welke;
+  const opKaart = welke === 'kaart';
+  el.lijst.hidden = opKaart;
+  // de meldingen die bij de kaart horen mogen niet over de lijst zweven
+  document.querySelector('.kaartvak').classList.toggle('toont-lijst', !opKaart);
+  document.getElementById('toon-kaart').classList.toggle('actief', opKaart);
+  document.getElementById('toon-lijst').classList.toggle('actief', !opKaart);
+  document.getElementById('toon-kaart').setAttribute('aria-pressed', String(opKaart));
+  document.getElementById('toon-lijst').setAttribute('aria-pressed', String(!opKaart));
+  if (opKaart) kaart.herbereken();
+  else tekenLijst();
+  try {
+    localStorage.setItem('kk_weergave', welke);
+  } catch { /* privémodus: dan geldt de keuze alleen deze sessie */ }
+}
+
+document.getElementById('toon-kaart').onclick = () => zetWeergave('kaart');
+document.getElementById('toon-lijst').onclick = () => zetWeergave('lijst');
+
 async function selecteer(id, { vlieg = true } = {}) {
   staat.geselecteerd = id;
   kaart.markeer(staat.klanten, id);
+  if (staat.weergave === 'lijst') tekenLijst();
   const klant = staat.klanten.find((k) => k.id === id);
   if (vlieg) kaart.vlieg(klant);
 
@@ -247,8 +290,17 @@ document.getElementById('uitloggen').onclick = async () => {
 
 // ---------- start ----------
 
+// keuze voor de achtergrondkaart
+el.kaartlaag.innerHTML = opties(
+  Object.entries(KAARTLAGEN).map(([sleutel, laag]) => [sleutel, laag.naam]), kaart.laagnaam);
+el.kaartlaag.onchange = () => kaart.zetLaag(el.kaartlaag.value);
+
 (async () => {
   try {
+    try {
+      const bewaard = localStorage.getItem('kk_weergave');
+      if (bewaard === 'lijst') zetWeergave('lijst');
+    } catch { /* geen opslag beschikbaar */ }
     await ververs({ pasAan: true });
     toonLeeg(el.dossier, staat.tellingen);
   } catch (err) {

@@ -46,6 +46,28 @@ Klanten in dezelfde gemeente krijgen elk een eigen plek binnen een paar honderd
 meter, zodat hun stippen niet samenvallen. De stippen worden kleiner als je
 uitzoomt, zodat ze op een overzicht van heel België aanklikbaar blijven.
 
+## Kaart of lijst
+
+Rechtsboven wissel je tussen **Kaart** en **Lijst**. Het zijn dezelfde klanten met
+dezelfde filters, alleen anders getoond. In de lijst klik je op een kolomkop om te
+sorteren — handig om te zien wie je het langst niet gezien hebt, of om een provincie
+in één oogopslag te overlopen. Een rij aanklikken opent hetzelfde dossier als een
+stip op de kaart.
+
+## De achtergrondkaart
+
+Onder *Filter* staat een keuze voor de achtergrondkaart:
+
+| Keuze | Waarvoor |
+|---|---|
+| **Rustig** | weinig ruis, grijstinten — de stippen vallen op (standaard) |
+| **Kleur** | rustig maar met kleur, het dichtst bij Google Maps |
+| **Donker** | past bij een donker scherm |
+| **Alle details** | de volledige OpenStreetMap, met elk gehucht en elke landweg |
+
+De keuze wordt per browser onthouden, dus jij en je collega's kunnen elk iets anders
+kiezen.
+
 ## Zoeken en filteren
 
 Eén zoekveld doorzoekt naam, contactpersoon, gemeente, postcode, straat én notities.

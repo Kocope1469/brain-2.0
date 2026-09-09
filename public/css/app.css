@@ -339,3 +339,57 @@ body.op-login { display: grid; place-items: center; padding: 24px 16px; }
   background: var(--accent-soft); color: var(--ink); font-size: .89rem;
 }
 .uitleg.fout { background: var(--rood-soft); color: var(--rood); }
+
+/* ---------- schakelaar kaart / lijst ---------- */
+
+.weergave {
+  display: flex; flex: none; padding: 3px; gap: 2px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;
+}
+.weergaveknop {
+  padding: 6px 14px; border: 0; border-radius: 7px; cursor: pointer;
+  background: transparent; color: var(--ink-2); font: inherit; font-weight: 550; font-size: .88rem;
+}
+.weergaveknop:hover { color: var(--ink); }
+.weergaveknop.actief { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+
+/* ---------- de lijst ---------- */
+
+.lijst { position: absolute; inset: 0; overflow-y: auto; background: var(--bg); z-index: 400; }
+
+/* in lijstweergave verdwijnt alles wat bij de kaart hoort */
+.kaartvak.toont-lijst > #kaart,
+.kaartvak.toont-lijst > .kaartmelding,
+.kaartvak.toont-lijst > .plaatsbalk,
+.kaartvak.toont-lijst > .zonderstip { display: none !important; }
+.lijstvak { padding: 14px 16px 24px; }
+
+.klantentabel { width: 100%; border-collapse: collapse; font-size: .9rem; background: var(--panel); }
+.klantentabel th, .klantentabel td {
+  text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line-2); vertical-align: middle;
+}
+.klantentabel thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+  font-size: .74rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--ink-3); font-weight: 600; white-space: nowrap;
+}
+.klantentabel th[data-sorteer] { cursor: pointer; user-select: none; }
+.klantentabel th[data-sorteer]:hover { color: var(--ink); }
+.klantentabel th.gesorteerd { color: var(--accent); }
+.klantentabel tbody tr { cursor: pointer; }
+.klantentabel tbody tr:hover { background: var(--panel-2); }
+.klantentabel tbody tr.gekozen { background: var(--accent-soft); }
+.klantentabel tbody tr:last-child td { border-bottom: 0; }
+.klantentabel .num { text-align: right; font-variant-numeric: tabular-nums; }
+.klantentabel .rowmain { font-weight: 600; }
+.klantentabel .rowsub { color: var(--oranje); font-size: .78rem; }
+.kleurkolom { width: 26px; padding-right: 0 !important; }
+.bol-kop { display: block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px dashed var(--ink-3); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+
+@media (max-width: 560px) {
+  .weergave { order: 3; }
+  .lijstvak { padding: 10px 8px 20px; }
+  .klantentabel th, .klantentabel td { padding: 8px 8px; }
+}
