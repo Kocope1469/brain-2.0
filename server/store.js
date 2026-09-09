@@ -383,6 +383,7 @@ export class Store {
     for (const k of alle) if (k.provincie) perProvincie[k.provincie] = (perProvincie[k.provincie] ?? 0) + 1;
     return {
       totaal: alle.length,
+      nieuw: alle.filter((k) => k.bucket === 'nieuw').length,
       recent: alle.filter((k) => k.bucket === 'recent').length,
       tijdje: alle.filter((k) => k.bucket === 'tijdje').length,
       lang: alle.filter((k) => k.bucket === 'lang').length,

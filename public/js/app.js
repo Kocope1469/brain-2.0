@@ -47,9 +47,10 @@ async function ververTellingen() {
   const { tellingen, tags, provincies, drempels } = await api.overzicht();
   const grens = drempels ?? tellingen.drempels;
   const uitleg = {
+    nieuw: 'nog geen enkel bezoek genoteerd',
     recent: `tot ${grens.recent} dagen na het laatste bezoek`,
     tijdje: `tussen ${grens.recent} en ${grens.tijdje} dagen`,
-    lang: `langer dan ${grens.tijdje} dagen geleden, of nog nooit`,
+    lang: `langer dan ${grens.tijdje} dagen geleden`,
   };
   for (const chip of el.chips.querySelectorAll('.chip')) {
     chip.querySelector('span').textContent = tellingen[chip.dataset.bucket];

@@ -5,8 +5,9 @@ export function esc(value) {
   ));
 }
 
-export const KLEUREN = { recent: '#22a559', tijdje: '#d98324', lang: '#d3453d' };
+export const KLEUREN = { nieuw: '#2f6fed', recent: '#22a559', tijdje: '#d98324', lang: '#d3453d' };
 export const BUCKETLABEL = {
+  nieuw: 'Nog nooit bezocht',
   recent: 'Recent bezocht',
   tijdje: 'Een tijdje geleden',
   lang: 'Lang niet bezocht',

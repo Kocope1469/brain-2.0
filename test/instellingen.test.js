@@ -49,9 +49,9 @@ describe('kleurgroep met eigen grenzen', () => {
     assert.equal(bucketVoor('2026-05-29', nu, zesMaanden), 'tijdje');
   });
 
-  test('nooit bezocht blijft rood, welke grens je ook kiest', () => {
-    assert.equal(bucketVoor(null, nu, zesMaanden), 'lang');
-    assert.equal(bucketVoor(null, nu, { recent: 3000, tijdje: 3600 }), 'lang');
+  test('nooit bezocht blijft blauw, welke grens je ook kiest', () => {
+    assert.equal(bucketVoor(null, nu, zesMaanden), 'nieuw');
+    assert.equal(bucketVoor(null, nu, { recent: 3000, tijdje: 3600 }), 'nieuw');
   });
 });
 

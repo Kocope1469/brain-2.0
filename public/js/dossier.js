@@ -12,6 +12,7 @@ export function toonLeeg(el, tellingen) {
       <p>Klik een stip op de kaart, of zoek bovenaan op naam of stad.</p>
       ${tellingen ? `
         <ul class="legende">
+          <li><span class="bol" style="background:${KLEUREN.nieuw}"></span> ${tellingen.nieuw ?? 0} nog nooit bezocht</li>
           <li><span class="bol" style="background:${KLEUREN.recent}"></span> ${tellingen.recent} recent bezocht</li>
           <li><span class="bol" style="background:${KLEUREN.tijdje}"></span> ${tellingen.tijdje} een tijdje geleden</li>
           <li><span class="bol" style="background:${KLEUREN.lang}"></span> ${tellingen.lang} lang niet bezocht</li>

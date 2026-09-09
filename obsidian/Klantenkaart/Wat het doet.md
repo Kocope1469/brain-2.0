@@ -18,9 +18,14 @@ datum van het laatste bezoek — er is geen statusveld dat iemand moet bijhouden
 
 | Kleur | Betekenis | Standaard |
 |---|---|---|
+| 🔵 Blauw | Nog nooit bezocht | geen enkel bezoek genoteerd |
 | 🟢 Groen | Recent bezocht | tot 30 dagen |
 | 🟠 Oranje | Een tijdje geleden | 31 tot 90 dagen |
-| 🔴 Rood | Lang niet bezocht | meer dan 90 dagen, of nooit |
+| 🔴 Rood | Lang niet bezocht | meer dan 90 dagen geleden |
+
+Blauw en rood zijn bewust uit elkaar gehouden: een klant die vorige week uit het CRM
+kwam is iets anders dan een klant waar je in twee jaar niet geweest bent. Eén bezoek
+noteren haalt een klant uit de blauwe groep; het laatste bezoek wissen zet hem terug.
 
 Die grenzen zijn instelbaar, zie [[Kleurgrenzen]].
 

@@ -36,6 +36,6 @@ betekent.
   zijn de oude kleuren er weer.
 - **Onmogelijke waarden worden geweigerd.** Oranje moet verder liggen dan groen,
   minstens één dag, hoogstens tien jaar.
-- **Nooit bezochte klanten blijven altijd rood**, welke grens je ook kiest. Dat is
-  het punt van die kleur.
+- **Nooit bezochte klanten zijn blauw** en blijven dat, welke grens je ook kiest.
+  Die grenzen gaan alleen over hoe lang geleden het laatste bezoek was.
 - De filterknoppen boven de kaart tonen bij het aanwijzen welke grenzen gelden.

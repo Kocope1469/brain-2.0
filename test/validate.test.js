@@ -23,9 +23,13 @@ describe('kleurgroep per klant', () => {
     assert.equal(bucketVoor('2020-01-01', nu), 'lang');
   });
 
-  test('nooit bezocht telt als lang niet bezocht — dat is het punt', () => {
-    assert.equal(bucketVoor(null, nu), 'lang');
-    assert.equal(bucketVoor('', nu), 'lang');
+  test('nooit bezocht is een eigen groep, geen verwaarloosde klant', () => {
+    assert.equal(bucketVoor(null, nu), 'nieuw');
+    assert.equal(bucketVoor('', nu), 'nieuw');
+  });
+
+  test('één bezoek volstaat om uit de nieuw-groep te raken', () => {
+    assert.equal(bucketVoor('2020-01-01', nu), 'lang', 'lang geleden is niet hetzelfde als nooit');
   });
 });
 

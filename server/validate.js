@@ -7,7 +7,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  */
 export const DREMPELS = { recent: 30, tijdje: 90 };
 
-export const BUCKETS = ['recent', 'tijdje', 'lang'];
+export const BUCKETS = ['nieuw', 'recent', 'tijdje', 'lang'];
 
 /** Hoe een stip op de kaart terechtgekomen is. */
 export const LOCATIE_BRONNEN = ['', 'handmatig', 'gemeente', 'adres'];
@@ -44,10 +44,15 @@ export function provincieVoor(postcode) {
 
 /**
  * In welke kleurgroep valt een klant, gegeven de datum van het laatste bezoek.
+ *
+ * Nooit bezocht is een eigen groep en niet hetzelfde als "lang niet bezocht": een
+ * klant die vorige week uit het CRM kwam verdient geen rode vlag, een klant waar
+ * je in twee jaar niet geweest bent wel.
+ *
  * @param {object} [drempels] grenzen in dagen; standaard die uit DREMPELS
  */
 export function bucketVoor(laatsteBezoek, vandaag = new Date(), drempels = DREMPELS) {
-  if (!laatsteBezoek) return 'lang';
+  if (!laatsteBezoek) return 'nieuw';
   const dagen = Math.floor((vandaag - new Date(`${laatsteBezoek}T00:00:00Z`)) / 86400000);
   if (dagen <= drempels.recent) return 'recent';
   if (dagen <= drempels.tijdje) return 'tijdje';

@@ -155,7 +155,7 @@ for (const dialect of dialecten('api')) {
         const r = await maak({ lat: '51.0596', lon: '3.7256', postal_code: '9000', tags: 'melkvee, gent' });
         assert.equal(r.status, 201);
         assert.equal(r.body.op_kaart, true);
-        assert.equal(r.body.bucket, 'lang');
+        assert.equal(r.body.bucket, 'nieuw', 'zonder bezoek hoort een klant blauw te zijn');
         assert.equal(r.body.provincie, 'Oost-Vlaanderen');
         assert.deepEqual(r.body.tags, ['gent', 'melkvee']);
       });
