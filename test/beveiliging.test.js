@@ -185,6 +185,32 @@ describe('headers op het hostingplatform', () => {
     assert.match(platform['strict-transport-security'] ?? '', /max-age=\d+/);
   });
 
+  /**
+   * De achtergrondkaart komt van een externe tegelserver. Staat die host niet in
+   * img-src, dan blokkeert de browser elke tegel en blijft de kaart leeg -- zonder
+   * foutmelding die naar de oorzaak wijst. Wie een kaartlaag toevoegt, moet dus ook
+   * de CSP aanpassen; deze test herinnert daaraan.
+   */
+  test('elke kaartlaag mag zijn tegels ophalen van de contentbeleidsregel', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { HEADERS } = await import('../server/beveiliging.js');
+
+    const bron = await readFile(new URL('../public/js/kaart.js', import.meta.url), 'utf8');
+    const hosts = [...bron.matchAll(/url:\s*'(https:\/\/[^/']+)/g)].map((m) => m[1]);
+    assert.ok(hosts.length >= 2, 'er horen kaartlagen met een tegel-URL te staan');
+
+    const imgSrc = HEADERS['content-security-policy'].match(/img-src([^;]*)/)[1].trim().split(/\s+/);
+    for (const host of new Set(hosts)) {
+      const naam = new URL(host).hostname;
+      const toegelaten = imgSrc.some((bron_) => {
+        if (bron_ === host || bron_ === `https://${naam}`) return true;
+        if (!bron_.startsWith('https://*.')) return false;
+        return naam.endsWith(bron_.slice('https://*'.length));
+      });
+      assert.ok(toegelaten, `${naam} staat niet in img-src; de tegels worden geblokkeerd`);
+    }
+  });
+
   test('alles wordt naar de app doorgestuurd wat niet als bestand bestaat', async () => {
     const { readFile } = await import('node:fs/promises');
     const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));

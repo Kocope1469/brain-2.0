@@ -12,40 +12,42 @@ function gekozenLaag() {
 const START = { midden: [50.85, 4.35], zoom: 8 }; // België in beeld
 
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-bijdragers';
-const CARTO = `${OSM}, &copy; <a href="https://carto.com/attributions">CARTO</a>`;
+const ESRI = 'Tegels &copy; <a href="https://www.esri.com">Esri</a>';
 
 /**
  * De achtergrondkaart. De standaardkaart van OpenStreetMap toont élk gehucht en
- * elke landweg; met honderden stippen erover wordt dat druk. De rustige varianten
- * laten weg wat er voor dit doel niet toe doet, zodat de stippen opvallen.
+ * elke landweg; met honderden stippen erover wordt dat druk.
+ *
+ * "Rustig" gebruikt dezelfde tegels maar dempt ze in de browser met een CSS-filter:
+ * minder kleur, minder contrast. Dat vraagt geen enkele externe dienst en kan dus
+ * ook niet wegvallen of ineens een sleutel eisen — wat met een vorige poging wel
+ * gebeurde. De andere lagen komen van elders en kunnen dat wel; wie ze kiest ziet
+ * meteen of ze werken.
  */
 export const KAARTLAGEN = {
   rustig: {
     naam: 'Rustig',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    attributie: CARTO,
-    maxZoom: 20,
-  },
-  kleur: {
-    naam: 'Kleur',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    attributie: CARTO,
-    maxZoom: 20,
-  },
-  donker: {
-    naam: 'Donker',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    attributie: CARTO,
-    maxZoom: 20,
-  },
-  detail: {
-    naam: 'Alle details',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    subdomains: 'abc',
     attributie: OSM,
+    maxZoom: 19,
+    demping: 'saturate(.32) contrast(.9) brightness(1.08)',
+  },
+  standaard: {
+    naam: 'Standaard',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attributie: OSM,
+    maxZoom: 19,
+  },
+  grijs: {
+    naam: 'Grijs (uitproberen)',
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attributie: ESRI,
+    maxZoom: 16,
+  },
+  straten: {
+    naam: 'Straten (uitproberen)',
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attributie: ESRI,
     maxZoom: 19,
   },
 };
@@ -79,8 +81,9 @@ export class Kaart {
     this.laag = L.tileLayer(spec.url, {
       maxZoom: spec.maxZoom,
       attribution: spec.attributie,
-      subdomains: spec.subdomains,
     });
+    // dempen gebeurt in de browser, op de tegels zelf; de stippen blijven onaangeroerd
+    this.map.getContainer().style.setProperty('--tegel-filter', spec.demping ?? 'none');
     let gemeld = false;
     this.laag.on('tileerror', () => {
       if (gemeld) return;

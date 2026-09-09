@@ -16,7 +16,7 @@ export const HEADERS = {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
+    "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://services.arcgisonline.com",
     "connect-src 'self'",
     "font-src 'self'",
     "form-action 'self'",

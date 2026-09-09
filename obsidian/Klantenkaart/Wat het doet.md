@@ -60,13 +60,22 @@ Onder *Filter* staat een keuze voor de achtergrondkaart:
 
 | Keuze | Waarvoor |
 |---|---|
-| **Rustig** | weinig ruis, grijstinten — de stippen vallen op (standaard) |
-| **Kleur** | rustig maar met kleur, het dichtst bij Google Maps |
-| **Donker** | past bij een donker scherm |
-| **Alle details** | de volledige OpenStreetMap, met elk gehucht en elke landweg |
+| **Rustig** | dezelfde kaart, maar bleker — de stippen vallen op (standaard) |
+| **Standaard** | de volledige OpenStreetMap, met elk gehucht en elke landweg |
+| **Grijs (uitproberen)** | grijstinten, het dichtst bij Google Maps |
+| **Straten (uitproberen)** | wegenkaart met meer straatnamen |
 
 De keuze wordt per browser onthouden, dus jij en je collega's kunnen elk iets anders
 kiezen.
+
+**Waarom "uitproberen"?** *Rustig* en *Standaard* halen hun kaartbeeld bij
+OpenStreetMap; dat is de kaart die de app altijd al gebruikt en die blijft werken.
+*Rustig* is geen andere kaart maar dezelfde, in je browser bleker gemaakt — daar kan
+dus niets aan wegvallen. *Grijs* en *Straten* komen van Esri, een externe dienst.
+Die zijn niet vanuit de ontwikkelomgeving te testen: werken ze bij jou, hou ze; zie
+je een watermerk of een lege kaart, gebruik dan *Rustig*. Een eerdere poging met een
+andere aanbieder (CARTO) is precies daarop stukgelopen — die begon plots een
+API-sleutel te eisen.
 
 ## Zoeken en filteren
 

@@ -154,6 +154,8 @@ label { display: block; font-size: .82rem; font-weight: 550; color: var(--ink-2)
 #kaart { position: absolute; inset: 0; background: var(--panel-2); }
 #kaart.plaatsen { cursor: crosshair; }
 .leaflet-container { font: inherit; background: var(--panel-2); }
+/* alleen de achtergrondtegels dempen; de stippen erboven blijven vol in kleur */
+.leaflet-tile-pane { filter: var(--tegel-filter, none); }
 
 .kaartmelding {
   position: absolute; left: 58px; right: 12px; top: 12px; z-index: 500; /* 58px laat de zoomknoppen vrij */
