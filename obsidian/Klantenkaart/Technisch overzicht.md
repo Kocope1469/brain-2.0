@@ -25,10 +25,10 @@ npm install
 npm run seed     # negen voorbeeldklanten
 npm start        # http://localhost:3000
 npm run dev      # herstart bij wijzigingen
-npm test         # 141 tests op SQLite
+npm test         # 157 tests op SQLite
 
 # de belangrijke testvorm: ook tegen Postgres
-TEST_DATABASE_URL=postgres://... npm test    # 220 tests
+TEST_DATABASE_URL=postgres://... npm test    # 241 tests
 ```
 
 Omgevingsvariabelen: een Postgres-adres onder `DATABASE_URL`, `POSTGRES_URL`,
@@ -54,7 +54,7 @@ server/
   csv.js            CSV lezen en schrijven
   seed.js           voorbeeldklanten
 public/             interface: kaart, dossier, formulieren, inlogpagina, iconen
-test/               220 tests, allemaal op beide databases
+test/               241 tests, allemaal op beide databases
 ```
 
 ## Database

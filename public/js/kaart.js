@@ -17,6 +17,7 @@ export class Kaart {
     this.onPlaats = onPlaats ?? (() => {});
     this.markers = new Map();
     this.plaatsModus = false;
+    this.geselecteerd = null;
 
     this.map = L.map(elementId, { zoomControl: true, attributionControl: true })
       .setView(START.midden, START.zoom);
@@ -33,10 +34,15 @@ export class Kaart {
     this.map.on('click', (e) => {
       if (this.plaatsModus) this.onPlaats(e.latlng.lat, e.latlng.lng);
     });
+
+    // uitgezoomd op heel België liggen honderden stippen over elkaar en kun je de
+    // onderste niet meer aanklikken; kleiner tekenen houdt ze uit elkaar
+    this.map.on('zoomend', () => this.#herteken());
   }
 
   /** Zet alle stippen opnieuw; klanten zonder coördinaten komen niet op de kaart. */
   toon(klanten, geselecteerdId = null) {
+    this.geselecteerd = geselecteerdId;
     for (const marker of this.markers.values()) marker.remove();
     this.markers.clear();
 
@@ -50,10 +56,30 @@ export class Kaart {
     }
   }
 
+  /** Hoe groot een stip mag zijn op dit zoomniveau. */
+  #straal() {
+    const zoom = this.map.getZoom();
+    if (zoom <= 8) return 4;
+    if (zoom <= 10) return 5;
+    if (zoom <= 12) return 6;
+    return 8;
+  }
+
+  #herteken() {
+    const straal = this.#straal();
+    for (const [id, marker] of this.markers) {
+      marker.setStyle({
+        radius: id === this.geselecteerd ? straal + 3 : straal,
+        weight: id === this.geselecteerd ? 3 : 1.5,
+      });
+    }
+  }
+
   #stijl(klant, geselecteerd) {
     const kleur = KLEUREN[klant.bucket] ?? KLEUREN.lang;
+    const straal = this.#straal();
     return {
-      radius: geselecteerd ? 11 : 8,
+      radius: geselecteerd ? straal + 3 : straal,
       color: geselecteerd ? '#ffffff' : 'rgba(0,0,0,.35)',
       weight: geselecteerd ? 3 : 1.5,
       fillColor: kleur,
@@ -64,6 +90,7 @@ export class Kaart {
 
   /** Markeert één stip als geselecteerd, zonder alles opnieuw te tekenen. */
   markeer(klanten, id) {
+    this.geselecteerd = id;
     for (const k of klanten) {
       const marker = this.markers.get(k.id);
       if (marker) marker.setStyle(this.#stijl(k, k.id === id));

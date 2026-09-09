@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS customers (
   notes         TEXT NOT NULL DEFAULT '',
   lat           REAL,
   lon           REAL,
+  locatie_bron  TEXT NOT NULL DEFAULT '',
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );
@@ -135,6 +136,7 @@ CREATE TABLE IF NOT EXISTS customers (
   notes         TEXT NOT NULL DEFAULT '',
   lat           DOUBLE PRECISION,
   lon           DOUBLE PRECISION,
+  locatie_bron  TEXT NOT NULL DEFAULT '',
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );
@@ -160,6 +162,16 @@ CREATE TABLE IF NOT EXISTS customer_tags (
   PRIMARY KEY (customer_id, tag_id)
 );
 `;
+
+/**
+ * Aanpassingen aan tabellen die al bestaan. CREATE TABLE IF NOT EXISTS voegt geen
+ * kolommen toe aan een database die er al staat, dus die gaan hier apart. Elke regel
+ * moet je zonder gevaar opnieuw kunnen draaien: bestaat de kolom al, dan geeft de
+ * database een fout die we negeren.
+ */
+const MIGRATIES = [
+  "ALTER TABLE customers ADD COLUMN locatie_bron TEXT NOT NULL DEFAULT ''",
+];
 
 const INDEXEN = [
   'CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city)',
@@ -344,6 +356,14 @@ export async function openDb({ url, file } = {}) {
     const { DatabaseSync } = await import('node:sqlite');
     db = new SqliteDb(new DatabaseSync(pad));
     await db.exec(DDL_SQLITE);
+  }
+  for (const migratie of MIGRATIES) {
+    try {
+      await db.exec(migratie);
+    } catch (err) {
+      // "duplicate column" betekent gewoon dat de aanpassing er al is
+      if (!/duplicate|already exists|bestaat al/i.test(err.message)) throw err;
+    }
   }
   for (const index of INDEXEN) await db.exec(index);
   return db;

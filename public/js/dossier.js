@@ -48,6 +48,9 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
       </div>
 
       ${!k.op_kaart ? '<p class="waarschuwing">Deze klant staat nog niet op de kaart.</p>' : ''}
+      ${k.locatie_bron === 'gemeente'
+    ? '<p class="terzijde">Stip staat op het midden van de gemeente, dus bij benadering. Klik op "Stip verplaatsen" om hem juist te zetten.</p>'
+    : ''}
 
       <dl class="velden">
         ${regel('Contact', esc(k.contact_name))}

@@ -25,9 +25,21 @@ datum van het laatste bezoek — er is geen statusveld dat iemand moet bijhouden
 Die grenzen zijn instelbaar, zie [[Kleurgrenzen]].
 
 Klanten zonder coördinaten krijgen géén stip — en dat wordt niet verzwegen:
-linksonder staat "X niet op de kaart" met hun namen. Eén klik op *Op de kaart
-zetten*, dan klik je waar de klant ligt. Wie een adres heeft ingevuld kan het ook
-automatisch laten opzoeken.
+linksonder staat hoeveel er ontbreken.
+
+> [!tip] Automatisch plaatsen
+> De knop **Automatisch plaatsen** zet in één keer alle klanten zonder stip op het
+> midden van hun gemeente. Dat gebeurt met een ingebouwde lijst van 1720 Belgische
+> plaatsnamen: geen externe dienst, geen wachtrij, 150 klanten in een tiende van
+> een seconde. Van een echte klantenlijst van 153 werden er 142 herkend.
+>
+> Zo'n stip staat **bij benadering**, en het dossier zegt dat er ook bij. Klopt hij
+> niet, versleep hem dan met *Stip verplaatsen* — wat je zelf zet wordt nooit meer
+> overschreven.
+
+Klanten in dezelfde gemeente krijgen elk een eigen plek binnen een paar honderd
+meter, zodat hun stippen niet samenvallen. De stippen worden kleiner als je
+uitzoomt, zodat ze op een overzicht van heel België aanklikbaar blijven.
 
 ## Zoeken en filteren
 

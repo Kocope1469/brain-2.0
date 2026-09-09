@@ -17,7 +17,7 @@ const el = {
   plaatstekst: document.getElementById('plaatstekst'),
 };
 
-const staat = { q: '', bucket: '', tag: '', provincie: '', klanten: [], geselecteerd: null, plaatstVoor: null };
+const staat = { q: '', bucket: '', tag: '', provincie: '', zonderStipOpen: false, klanten: [], geselecteerd: null, plaatstVoor: null };
 
 const kaart = new Kaart('kaart', {
   onSelecteer: (id) => selecteer(id, { vlieg: false }),
@@ -68,7 +68,11 @@ async function ververTellingen() {
   staat.tellingen = tellingen;
 }
 
-/** Klanten zonder coördinaten kunnen niet op de kaart; die verstoppen we niet. */
+/**
+ * Klanten zonder coördinaten kunnen niet op de kaart. Dat verzwijgen we niet, maar
+ * bij honderden klanten mag die melding het scherm ook niet opeten: standaard alleen
+ * een telling en een knop die ze in één keer plaatst.
+ */
 function toonZonderStip() {
   const zonder = staat.klanten.filter((k) => !k.op_kaart);
   let bak = document.getElementById('zonderstip');
@@ -82,10 +86,44 @@ function toonZonderStip() {
     bak.className = 'zonderstip';
     document.querySelector('.kaartvak').append(bak);
   }
-  bak.innerHTML = `<strong>${zonder.length} niet op de kaart:</strong> ${zonder
-    .map((k) => `<button class="linklike" data-id="${k.id}">${esc(k.name)}</button>`).join(', ')}`;
+
+  const uitgeklapt = staat.zonderStipOpen && zonder.length > 1;
+  bak.innerHTML = `
+    <div class="zonderstip-kop">
+      <strong>${zonder.length} niet op de kaart</strong>
+      <button class="btn btn-sm btn-primary" id="plaats-alles">Automatisch plaatsen</button>
+      ${zonder.length > 1 ? `<button class="linklike" id="toon-lijst">${uitgeklapt ? 'verbergen' : 'toon lijst'}</button>` : ''}
+    </div>
+    <div class="zonderstip-lijst"${uitgeklapt || zonder.length === 1 ? '' : ' hidden'}>
+      ${zonder.map((k) => `<button class="linklike" data-id="${k.id}">${esc(k.name)}</button>`).join(', ')}
+    </div>`;
+
   for (const knop of bak.querySelectorAll('[data-id]')) {
     knop.onclick = () => selecteer(Number(knop.dataset.id), { vlieg: false });
+  }
+  const toon = bak.querySelector('#toon-lijst');
+  if (toon) {
+    toon.onclick = () => { staat.zonderStipOpen = !staat.zonderStipOpen; toonZonderStip(); };
+  }
+  bak.querySelector('#plaats-alles').onclick = plaatsAllemaal;
+}
+
+/** Zet in één keer alle klanten zonder stip op het midden van hun gemeente. */
+async function plaatsAllemaal() {
+  const knop = document.getElementById('plaats-alles');
+  knop.disabled = true;
+  knop.textContent = 'Bezig…';
+  try {
+    const r = await probeer(() => api.plaatsOpKaart());
+    const delen = [`${r.geplaatst} klant(en) op de kaart gezet`];
+    if (r.nietGevonden.length) delen.push(`${r.nietGevonden.length} zonder herkenbare gemeente`);
+    toast(`${delen.join(', ')}.`, r.nietGevonden.length ? 'fout' : 'ok');
+    if (r.nietGevonden.length) console.table(r.nietGevonden);
+    staat.zonderStipOpen = r.nietGevonden.length > 0 && r.nietGevonden.length <= 20;
+    await ververs({ pasAan: true });
+  } catch {
+    knop.disabled = false;
+    knop.textContent = 'Automatisch plaatsen';
   }
 }
 
@@ -131,7 +169,9 @@ async function plaatsStip(lat, lon) {
   if (!klant) return;
   stopPlaatsen();
   await probeer(
-    () => api.wijzigKlant(klant.id, { lat: lat.toFixed(6), lon: lon.toFixed(6) }),
+    () => api.wijzigKlant(klant.id, {
+      lat: lat.toFixed(6), lon: lon.toFixed(6), locatie_bron: 'handmatig',
+    }),
     `${klant.name} staat nu op de kaart.`,
   );
   await ververs();

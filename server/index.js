@@ -260,6 +260,10 @@ export function createApp({ store, auth, pogingen, instellingen, geocodeImpl = g
         return json(res, 200, { ...rapport, gelezen: customers.length, genegeerde_kolommen: unmapped });
       }
 
+      if (pad === '/api/klanten/plaats-op-kaart' && methode === 'POST') {
+        return json(res, 200, await store.plaatsOpKaart());
+      }
+
       if (pad === '/api/geocode' && methode === 'POST') {
         const body = await readJson(req);
         const zoek = String(body.adres ?? '').trim() || adresRegel(body);

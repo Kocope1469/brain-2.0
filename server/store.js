@@ -1,9 +1,10 @@
 import { nu } from './db.js';
 import { validateCustomer, validateVisit, bucketVoor, provincieVoor } from './validate.js';
 import { Instellingen } from './instellingen.js';
+import { zoekPlaats, spreid } from './plaatsen.js';
 
 const VELDEN = ['external_id', 'name', 'contact_name', 'phone', 'email', 'street',
-  'postal_code', 'city', 'country', 'vat_number', 'notes', 'lat', 'lon'];
+  'postal_code', 'city', 'country', 'vat_number', 'notes', 'lat', 'lon', 'locatie_bron'];
 
 /** Velden die een CSV-import mag overschrijven. Notities en stippen niet. */
 const IMPORT_VELDEN = ['name', 'contact_name', 'phone', 'email', 'street',
@@ -325,6 +326,52 @@ export class Store {
         stuk.flat(),
       );
     }
+  }
+
+  // ---------- klanten op de kaart zetten ----------
+
+  /**
+   * Zet in één keer alle klanten zonder stip op de kaart, op het middelpunt van
+   * hun gemeente. Gebeurt volledig met de ingebouwde plaatsenlijst: geen externe
+   * dienst, geen wachtrij, geen limiet.
+   *
+   * Wie al een stip heeft blijft ongemoeid — ook wie hem zelf versleept heeft.
+   * @returns {Promise<{geplaatst: number, nietGevonden: Array, alGeplaatst: number}>}
+   */
+  async plaatsOpKaart() {
+    const zonder = await this.db.all(
+      'SELECT id, name, postal_code, city, country FROM customers WHERE lat IS NULL OR lon IS NULL');
+    const alGeplaatst = Number((await this.db.get(
+      'SELECT COUNT(*) AS n FROM customers WHERE lat IS NOT NULL')).n);
+
+    // eerst opzoeken, dan pas schrijven: zo weten we hoeveel klanten dezelfde
+    // gemeente delen en kunnen we hun stippen uit elkaar leggen
+    const perGemeente = new Map();
+    const nietGevonden = [];
+    for (const klant of zonder) {
+      const plaats = zoekPlaats(klant.city);
+      if (!plaats) {
+        nietGevonden.push({ id: klant.id, naam: klant.name, gemeente: klant.city || '(geen gemeente)' });
+        continue;
+      }
+      const sleutel = `${plaats.lat},${plaats.lon}`;
+      if (!perGemeente.has(sleutel)) perGemeente.set(sleutel, { plaats, klanten: [] });
+      perGemeente.get(sleutel).klanten.push(klant);
+    }
+
+    const tijd = nu();
+    let geplaatst = 0;
+    for (const { plaats, klanten } of perGemeente.values()) {
+      for (const klant of klanten) {
+        const punt = spreid(plaats, klant.id, klanten.length);
+        await this.db.run(
+          'UPDATE customers SET lat = ?, lon = ?, locatie_bron = ?, updated_at = ? WHERE id = ?',
+          [punt.lat, punt.lon, 'gemeente', tijd, klant.id],
+        );
+        geplaatst++;
+      }
+    }
+    return { geplaatst, nietGevonden, alGeplaatst, zonderStip: zonder.length };
   }
 
   // ---------- overzicht ----------

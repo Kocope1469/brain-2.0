@@ -167,12 +167,16 @@ label { display: block; font-size: .82rem; font-weight: 550; color: var(--ink-2)
 
 .zonderstip {
   position: absolute; left: 12px; bottom: 12px; z-index: 500;
-  max-width: min(420px, calc(100% - 24px));
-  padding: 8px 11px; border-radius: 9px;
+  max-width: min(460px, calc(100% - 24px));
+  padding: 9px 11px; border-radius: 9px;
   background: var(--panel); border: 1px solid var(--line);
   box-shadow: var(--shadow); font-size: .82rem; color: var(--ink-2);
 }
 .zonderstip .linklike { font-size: inherit; }
+.zonderstip-kop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.zonderstip-kop strong { color: var(--ink); }
+/* de lijst mag nooit het scherm opeten, ook niet bij honderden klanten */
+.zonderstip-lijst { margin-top: 8px; max-height: 28vh; overflow-y: auto; line-height: 1.7; }
 
 /* ---------- dossier ---------- */
 
@@ -206,6 +210,11 @@ label { display: block; font-size: .82rem; font-weight: 550; color: var(--ink-2)
 }
 
 .dossier-acties { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+
+.terzijde {
+  margin: 10px 0 0; padding: 8px 11px; border-radius: 8px;
+  background: var(--panel-2); color: var(--ink-3); font-size: .82rem;
+}
 
 .waarschuwing {
   margin: 10px 0 0; padding: 8px 11px; border-radius: 8px;

@@ -9,6 +9,9 @@ export const DREMPELS = { recent: 30, tijdje: 90 };
 
 export const BUCKETS = ['recent', 'tijdje', 'lang'];
 
+/** Hoe een stip op de kaart terechtgekomen is. */
+export const LOCATIE_BRONNEN = ['', 'handmatig', 'gemeente', 'adres'];
+
 /**
  * Belgische postcodereeksen per provincie. Zo krijg je een regiofilter zonder
  * externe gegevensbron of geocoder: de postcode staat al in het CRM.
@@ -119,6 +122,12 @@ export function validateCustomer(input = {}, { partial = false } = {}) {
     if (lat === undefined || lon === undefined) errors.push('Coördinaten zijn ongeldig.');
     else if ((lat === null) !== (lon === null)) errors.push('Geef breedte- én lengtegraad, of geen van beide.');
     else { value.lat = lat; value.lon = lon; }
+  }
+
+  if (has('locatie_bron')) {
+    const bron = clean(input.locatie_bron, 20);
+    if (!LOCATIE_BRONNEN.includes(bron)) errors.push('Onbekende herkomst van de locatie.');
+    else value.locatie_bron = bron;
   }
 
   if (has('tags')) {

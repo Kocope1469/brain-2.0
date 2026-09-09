@@ -56,6 +56,7 @@ export const api = {
   verwijderBezoek: (id) => vraag(`/api/bezoeken/${id}`, { method: 'DELETE' }),
   geocode: (adres) => vraag('/api/geocode', { method: 'POST', body: { adres } }),
   importeer: (csv) => vraag('/api/klanten/import', { method: 'POST', body: { csv } }),
+  plaatsOpKaart: () => vraag('/api/klanten/plaats-op-kaart', { method: 'POST' }),
 };
 
 export async function probeer(actie, succesbericht) {
