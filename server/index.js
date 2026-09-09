@@ -298,9 +298,15 @@ export function createApp({ store, auth, pogingen, instellingen, geocodeImpl = g
         return r.ok ? json(res, 201, r.value) : fail(res, 422, r.errors);
       }
 
-      const bezoekWeg = pad.match(/^\/api\/bezoeken\/(\d+)$/);
-      if (bezoekWeg && methode === 'DELETE') {
-        return await store.deleteVisit(Number(bezoekWeg[1]))
+      const eenBezoek = pad.match(/^\/api\/bezoeken\/(\d+)$/);
+      if (eenBezoek && methode === 'PATCH') {
+        const r = await store.updateVisit(
+          Number(eenBezoek[1]), await readJson(req), gebruiker.name || gebruiker.email);
+        if (r.notFound) return fail(res, 404, 'Dit bezoek bestaat niet.');
+        return r.ok ? json(res, 200, r.value) : fail(res, 422, r.errors);
+      }
+      if (eenBezoek && methode === 'DELETE') {
+        return await store.deleteVisit(Number(eenBezoek[1]))
           ? json(res, 200, { verwijderd: true })
           : fail(res, 404, 'Dit bezoek bestaat niet.');
       }

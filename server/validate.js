@@ -143,6 +143,15 @@ export function validateCustomer(input = {}, { partial = false } = {}) {
   return errors.length ? { ok: false, errors } : { ok: true, value };
 }
 
+/**
+ * Een bezoek. `with_whom` is wie je bij de klant gesproken hebt; `author` is de
+ * collega die er geweest is. Dat zijn twee verschillende mensen -- de eerste werkt
+ * bij de klant, de tweede bij Comsoltech.
+ *
+ * `author` blijft vrije tekst en wordt niet aan de gebruikerstabel gekoppeld. Wie
+ * uit dienst gaat en uit de app verdwijnt, hoort niet uit de bezoekgeschiedenis te
+ * verdwijnen: wat er gebeurd is, is gebeurd.
+ */
 export function validateVisit(input = {}) {
   const errors = [];
   const visit_date = clean(input.visit_date, 10) || new Date().toISOString().slice(0, 10);
@@ -150,6 +159,7 @@ export function validateVisit(input = {}) {
   else if (visit_date > new Date().toISOString().slice(0, 10)) errors.push('Een bezoek kan niet in de toekomst liggen.');
   const with_whom = clean(input.with_whom, 120);
   const notes = clean(input.notes, 10000);
+  const author = clean(input.author, 120);
   if (!notes && !with_whom) errors.push('Noteer met wie je sprak of waarover het ging.');
-  return errors.length ? { ok: false, errors } : { ok: true, value: { visit_date, with_whom, notes } };
+  return errors.length ? { ok: false, errors } : { ok: true, value: { visit_date, with_whom, notes, author } };
 }

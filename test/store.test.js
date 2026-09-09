@@ -60,6 +60,69 @@ for (const dialect of dialecten('store')) {
         assert.equal((await store.getCustomer(k.id)).visits[0].author, 'Kobe');
       });
 
+      test('kiest het formulier een collega, dan wint die van wie ingelogd is', async () => {
+        const k = await maak();
+        await store.addVisit(k.id, { notes: 'Ik werk de week van mijn collega bij', author: 'Wim' }, 'Kobe');
+        assert.equal((await store.getCustomer(k.id)).visits[0].author, 'Wim');
+      });
+
+      describe('een genoteerd bezoek rechtzetten', () => {
+        test('past aan wat je meestuurt en laat de rest staan', async () => {
+          const k = await maak();
+          const b = (await store.addVisit(k.id,
+            { visit_date: dagenTerug(7), with_whom: 'EGD', notes: 'Type B besporken' }, 'Kobe')).value;
+
+          const r = await store.updateVisit(b.id, { notes: 'Type B besproken' }, 'Kobe');
+          assert.equal(r.ok, true);
+          const na = (await store.getCustomer(k.id)).visits[0];
+          assert.equal(na.notes, 'Type B besproken');
+          assert.equal(na.with_whom, 'EGD', 'wat je niet meestuurt hoort te blijven staan');
+          assert.equal(na.visit_date, dagenTerug(7));
+          assert.equal(na.author, 'Kobe');
+          assert.equal(na.id, b.id, 'het bezoek hoort hetzelfde bezoek te blijven');
+        });
+
+        test('een verbeterde datum verandert meteen de kleur van de klant', async () => {
+          const k = await maak();
+          const b = (await store.addVisit(k.id, { visit_date: dagenTerug(400), notes: 'x' })).value;
+          assert.equal((await store.getCustomer(k.id)).bucket, 'lang');
+          await store.updateVisit(b.id, { visit_date: dagenTerug(3) });
+          assert.equal((await store.getCustomer(k.id)).bucket, 'recent');
+        });
+
+        test('kan de collega rechtzetten die er geweest is', async () => {
+          const k = await maak();
+          const b = (await store.addVisit(k.id, { notes: 'x' }, 'Kobe')).value;
+          await store.updateVisit(b.id, { author: 'Wim' }, 'Kobe');
+          assert.equal((await store.getCustomer(k.id)).visits[0].author, 'Wim');
+        });
+
+        test('weigert een bezoek in de toekomst en laat het oude staan', async () => {
+          const k = await maak();
+          const b = (await store.addVisit(k.id, { visit_date: dagenTerug(7), notes: 'x' })).value;
+          const morgen = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+          const r = await store.updateVisit(b.id, { visit_date: morgen });
+          assert.equal(r.ok, false);
+          assert.equal((await store.getCustomer(k.id)).visits[0].visit_date, dagenTerug(7),
+            'een geweigerde wijziging hoort niets te veranderen');
+        });
+
+        test('een bezoek dat niet bestaat geeft notFound, geen stille mislukking', async () => {
+          const r = await store.updateVisit(999999, { notes: 'x' });
+          assert.equal(r.notFound, true);
+          assert.ok(!r.ok);
+        });
+
+        test('verhuist het bezoek niet naar een andere klant', async () => {
+          const a = await maak({ name: 'Hoeve A' });
+          const b2 = await maak({ name: 'Hoeve B' });
+          const bez = (await store.addVisit(a.id, { notes: 'bij A' })).value;
+          await store.updateVisit(bez.id, { notes: 'nog steeds bij A', customer_id: b2.id });
+          assert.equal((await store.getCustomer(a.id)).visits.length, 1);
+          assert.equal((await store.getCustomer(b2.id)).visits.length, 0);
+        });
+      });
+
       test('een bezoek verwijderen zet de kleur terug', async () => {
         const k = await maak();
         const b = (await store.addVisit(k.id, { visit_date: dagenTerug(2), notes: 'x' })).value;

@@ -206,6 +206,45 @@ for (const dialect of dialecten('api')) {
           method: 'POST', body: { notes: 'x', visit_date: '2099-01-01' },
         })).status, 422);
       });
+
+      test('je kan kiezen welke collega er geweest is', async () => {
+        const { body: k } = await maak();
+        await vraag(`/api/klanten/${k.id}/bezoeken`, {
+          method: 'POST', body: { notes: 'Bezoek van Wim ingetikt', author: 'Wim' },
+        });
+        assert.equal((await vraag(`/api/klanten/${k.id}`)).body.visits[0].author, 'Wim',
+          'wie het noteert is niet altijd wie er geweest is');
+      });
+
+      test('een typfout in een bezoek is achteraf recht te zetten', async () => {
+        const { body: k } = await maak();
+        const { body: b } = await vraag(`/api/klanten/${k.id}/bezoeken`, {
+          method: 'POST', body: { visit_date: dagenTerug(6), with_whom: 'EGD', notes: 'Type B besporken' },
+        });
+
+        const r = await vraag(`/api/bezoeken/${b.id}`, { method: 'PATCH', body: { notes: 'Type B besproken' } });
+        assert.equal(r.status, 200);
+        const [na] = (await vraag(`/api/klanten/${k.id}`)).body.visits;
+        assert.equal(na.notes, 'Type B besproken');
+        assert.equal(na.with_whom, 'EGD');
+        assert.equal(na.visit_date, dagenTerug(6));
+      });
+
+      test('een onmogelijke wijziging wordt geweigerd en verandert niets', async () => {
+        const { body: k } = await maak();
+        const { body: b } = await vraag(`/api/klanten/${k.id}/bezoeken`, {
+          method: 'POST', body: { visit_date: dagenTerug(6), notes: 'x' },
+        });
+        assert.equal((await vraag(`/api/bezoeken/${b.id}`, {
+          method: 'PATCH', body: { visit_date: '2099-01-01' },
+        })).status, 422);
+        assert.equal((await vraag(`/api/klanten/${k.id}`)).body.visits[0].visit_date, dagenTerug(6));
+      });
+
+      test('een bezoek dat niet bestaat geeft 404', async () => {
+        assert.equal((await vraag('/api/bezoeken/999999', { method: 'PATCH', body: { notes: 'x' } })).status, 404);
+        assert.equal((await vraag('/api/bezoeken/999999', { method: 'DELETE' })).status, 404);
+      });
     });
 
     describe('overzicht, import en export', () => {

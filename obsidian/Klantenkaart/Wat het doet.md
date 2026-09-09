@@ -109,10 +109,27 @@ Klik een stip aan en rechts (op gsm: eronder) opent het dossier:
   ("3 weken geleden")
 - Contactpersoon, telefoon, e-mail, adres, BTW-nummer, tags
 - Vrije notities over de klant
-- **De bezoektijdlijn**: per bezoek de datum, met wie je sprak, en waarover het ging
+- **De bezoektijdlijn**: per bezoek de datum, welke collega er geweest is, met wie je
+  sprak, en waarover het ging
 
-Een bezoek noteren is drie velden: datum, met wie, waarover. Er wordt automatisch
-bijgehouden wie het schreef.
+Een bezoek noteren is vier velden: datum, **bezocht door**, met wie gesproken,
+waarover.
+
+*Bezocht door* is een keuzelijst met de collega's die een account hebben. Standaard
+sta jij er, maar je kan een collega kiezen: wie het bezoek intikt is niet altijd wie
+er geweest is — je werkt de week van een collega bij, of je noteert het achteraf voor
+iemand anders.
+
+*Met wie gesproken* is een ander veld: dat is de persoon **bij de klant**. Twee
+verschillende mensen dus — de ene werkt bij Comsoltech, de andere bij de klant.
+
+Elk genoteerd bezoek heeft een **potloodje** om het achteraf recht te zetten: datum,
+collega, gesprekspartner of verslag. Een typfout hoort je niet te dwingen het bezoek
+te wissen en opnieuw in te tikken, want dan raak je de rest van het verslag kwijt.
+Een bezoek in de toekomst wordt geweigerd en dan verandert er niets.
+
+Verdwijnt een collega later uit de app, dan blijft zijn naam in de bezoeken staan.
+Wat er gebeurd is, is gebeurd.
 
 ![[klantdossier.png]]
 

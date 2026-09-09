@@ -53,6 +53,7 @@ export const api = {
   wijzigKlant: (id, data) => vraag(`/api/klanten/${id}`, { method: 'PATCH', body: data }),
   verwijderKlant: (id) => vraag(`/api/klanten/${id}`, { method: 'DELETE' }),
   nieuwBezoek: (id, data) => vraag(`/api/klanten/${id}/bezoeken`, { method: 'POST', body: data }),
+  wijzigBezoek: (id, data) => vraag(`/api/bezoeken/${id}`, { method: 'PATCH', body: data }),
   verwijderBezoek: (id) => vraag(`/api/bezoeken/${id}`, { method: 'DELETE' }),
   geocode: (adres) => vraag('/api/geocode', { method: 'POST', body: { adres } }),
   importeer: (csv) => vraag('/api/klanten/import', { method: 'POST', body: { csv } }),

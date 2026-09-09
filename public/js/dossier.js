@@ -2,6 +2,12 @@ import { api, probeer } from './api.js';
 import { esc, datum, geleden, vandaag, btwFormaat, initialen, BUCKETLABEL, KLEUREN } from './util.js';
 import { klantFormulier, bezoekFormulier } from './forms.js';
 
+/* Het potlood als tekening: de tekens ✎ en ✏ vallen per lettertype anders uit,
+   van bijna onzichtbaar dun tot een gekleurde emoji. */
+const POTLOOD = `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+  <path d="M11.6 1.2a1.4 1.4 0 0 1 2 0l1.2 1.2a1.4 1.4 0 0 1 0 2l-.9.9-3.2-3.2zM9.8 3l3.2 3.2-7 7H2.8v-3.2z"/>
+</svg>`;
+
 const regel = (label, waarde) => (waarde ? `<div class="veld"><dt>${esc(label)}</dt><dd>${waarde}</dd></div>` : '');
 
 /**
@@ -125,13 +131,19 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
             <li>
               <div class="bezoek-kop">
                 <strong>${esc(datum(b.visit_date))}</strong>
-                ${b.with_whom ? `<span class="muted">— met ${esc(b.with_whom)}</span>` : ''}
-                <button class="btn-icoon" data-bezoek="${b.id}" title="Bezoek verwijderen" aria-label="Bezoek verwijderen">✕</button>
+                <span class="bezoek-knoppen">
+                  <button class="btn-icoon" data-bewerk-bezoek="${b.id}" title="Bezoek bewerken" aria-label="Bezoek bewerken">${POTLOOD}</button>
+                  <button class="btn-icoon" data-bezoek="${b.id}" title="Bezoek verwijderen" aria-label="Bezoek verwijderen">✕</button>
+                </span>
               </div>
+              ${b.author || b.with_whom ? `<p class="bezoek-wie">${[
+    b.author ? `door ${esc(b.author)}` : '',
+    b.with_whom ? `met ${esc(b.with_whom)}` : '',
+  ].filter(Boolean).join(' — ')}</p>` : ''}
               ${b.notes ? `<p class="bezoek-tekst">${esc(b.notes)}</p>` : ''}
             </li>`).join('')}
           </ol>`
-    : '<p class="leeg">Nog geen bezoek genoteerd. Dat is waarom deze stip rood is.</p>'}
+    : '<p class="leeg">Nog geen bezoek genoteerd. Dat is waarom deze stip blauw is.</p>'}
       </section>
 
       <footer class="dossier-voet">
@@ -156,6 +168,10 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
       await probeer(() => api.verwijderBezoek(knop.dataset.bezoek), 'Bezoek verwijderd.');
       await ververs();
     };
+  }
+  for (const knop of el.querySelectorAll('[data-bewerk-bezoek]')) {
+    knop.onclick = () => bezoekFormulier(
+      k, ververs, k.visits.find((b) => String(b.id) === knop.dataset.bewerkBezoek));
   }
   return k;
 }

@@ -159,6 +159,11 @@ export class Store {
 
   // ---------- bezoeken ----------
 
+  /**
+   * `auteur` is wie er ingelogd is. Kiest het formulier zelf een collega, dan wint
+   * die: wie het bezoek noteert is niet noodzakelijk wie er geweest is -- iemand
+   * werkt zijn week op kantoor bij, of noteert het bezoek van een collega.
+   */
   async addVisit(customerId, input, auteur = '') {
     if (!await this.db.get('SELECT id FROM customers WHERE id = ?', [customerId])) {
       return { ok: false, notFound: true };
@@ -168,9 +173,33 @@ export class Store {
     const v = res.value;
     const id = await this.db.insert(
       'INSERT INTO visits(customer_id, visit_date, with_whom, notes, author, created_at) VALUES(?,?,?,?,?,?)',
-      [customerId, v.visit_date, v.with_whom, v.notes, auteur, nu()],
+      [customerId, v.visit_date, v.with_whom, v.notes, v.author || auteur, nu()],
     );
     await this.db.run('UPDATE customers SET updated_at = ? WHERE id = ?', [nu(), customerId]);
+    return { ok: true, value: await this.db.get('SELECT * FROM visits WHERE id = ?', [id]) };
+  }
+
+  /**
+   * Een genoteerd bezoek rechtzetten. Een typfout of een verkeerde datum hoort je
+   * niet te dwingen het bezoek te wissen en opnieuw in te tikken -- daarbij raak je
+   * de rest van het verslag kwijt.
+   *
+   * De klant zelf verandert niet: een bezoek verhuist niet naar iemand anders.
+   */
+  async updateVisit(id, input, auteur = '') {
+    const bestaand = await this.db.get('SELECT * FROM visits WHERE id = ?', [id]);
+    if (!bestaand) return { ok: false, notFound: true };
+
+    // alleen de meegestuurde velden wijzigen; de rest blijft zoals het was
+    const res = validateVisit({ ...bestaand, ...input });
+    if (!res.ok) return res;
+    const v = res.value;
+
+    await this.db.run(
+      'UPDATE visits SET visit_date = ?, with_whom = ?, notes = ?, author = ? WHERE id = ?',
+      [v.visit_date, v.with_whom, v.notes, v.author || auteur, id],
+    );
+    await this.db.run('UPDATE customers SET updated_at = ? WHERE id = ?', [nu(), bestaand.customer_id]);
     return { ok: true, value: await this.db.get('SELECT * FROM visits WHERE id = ?', [id]) };
   }
 

@@ -1,29 +1,74 @@
 import { api, probeer } from './api.js';
-import { esc, modal, toonFouten, toast, vandaag } from './util.js';
+import { esc, modal, toonFouten, toast, vandaag, opties } from './util.js';
 
 const veld = (naam, label, waarde = '', extra = '') =>
   `<div class="field"><label for="f-${naam}">${esc(label)}</label>
      <input id="f-${naam}" name="${naam}" value="${esc(waarde)}" ${extra}></div>`;
 
-/** Bezoek noteren: datum, met wie, waarover. Precies wat er in het dossier komt. */
-export function bezoekFormulier(klant, naOpslaan = () => {}) {
+/** De naam waaronder een collega in de app bekend staat. */
+const collegaNaam = (g) => g.name?.trim() || g.email;
+
+/**
+ * De collega's, om uit te kiezen bij "Bezocht door". Eén keer opgehaald per
+ * paginabezoek: er komt zelden iemand bij, en een extra wachttijd telkens je een
+ * bezoek noteert weegt daar niet tegenop.
+ */
+let collegasBelofte;
+async function collegas() {
+  collegasBelofte ??= (async () => {
+    const [lijst, sessie] = await Promise.all([api.gebruikers(), api.sessie()]);
+    return { namen: lijst.map(collegaNaam), ik: sessie.gebruiker ? collegaNaam(sessie.gebruiker) : '' };
+  })().catch((err) => { collegasBelofte = undefined; throw err; });
+  return collegasBelofte;
+}
+
+/**
+ * Bezoek noteren of rechtzetten: datum, wie er geweest is, wie je gesproken hebt,
+ * waarover. Precies wat er in het dossier komt.
+ *
+ * Hetzelfde venster voor een nieuw en een bestaand bezoek. Een typfout hoort je niet
+ * te dwingen het bezoek te wissen en opnieuw in te tikken.
+ */
+export async function bezoekFormulier(klant, naOpslaan = () => {}, bezoek = null) {
+  let namen = [];
+  let ik = '';
+  try {
+    ({ namen, ik } = await collegas());
+  } catch {
+    // lukt het niet, dan blijft het een gewoon tekstveld -- beter dan geen venster
+  }
+
+  const gekozen = bezoek?.author || ik;
+  // een collega die intussen uit de app verdween mag niet stil uit het verslag vallen
+  const keuzes = namen.includes(gekozen) || !gekozen ? namen : [gekozen, ...namen];
+
   modal({
-    titel: `Bezoek bij ${klant.name}`,
-    bevestig: 'Bezoek opslaan',
+    titel: bezoek ? `Bezoek bij ${klant.name} bewerken` : `Bezoek bij ${klant.name}`,
+    bevestig: bezoek ? 'Wijziging opslaan' : 'Bezoek opslaan',
     body: `
       <div class="fields">
-        ${veld('visit_date', 'Datum', vandaag(), 'type="date" required')}
-        ${veld('with_whom', 'Met wie', klant.contact_name?.split(' ')[0] ?? '', 'placeholder="Peter"')}
+        ${veld('visit_date', 'Datum', bezoek?.visit_date ?? vandaag(), 'type="date" required')}
+        ${keuzes.length
+    ? `<div class="field"><label for="f-author">Bezocht door</label>
+         <select id="f-author" name="author">${opties(keuzes, gekozen)}</select></div>`
+    : veld('author', 'Bezocht door', gekozen)}
+        ${veld('with_whom', 'Met wie gesproken',
+    bezoek?.with_whom ?? klant.contact_name?.split(' ')[0] ?? '', 'placeholder="Peter"')}
         <div class="field span-2">
           <label for="f-notes">Waarover ging het?</label>
           <textarea id="f-notes" name="notes" rows="4"
-            placeholder="Nieuwe Type B voorraad besproken"></textarea>
+            placeholder="Nieuwe Type B voorraad besproken">${esc(bezoek?.notes ?? '')}</textarea>
         </div>
       </div>`,
     onSubmit: async (data) => {
       try {
-        await api.nieuwBezoek(klant.id, data);
-        toast('Bezoek genoteerd.');
+        if (bezoek) {
+          await api.wijzigBezoek(bezoek.id, data);
+          toast('Bezoek bijgewerkt.');
+        } else {
+          await api.nieuwBezoek(klant.id, data);
+          toast('Bezoek genoteerd.');
+        }
         await naOpslaan();
       } catch (err) {
         toonFouten(err.fouten ?? [err.message]);

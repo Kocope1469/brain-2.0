@@ -148,6 +148,31 @@ for (const dialect of dialecten('beveiliging')) {
         }
       });
 
+      /**
+       * Lezen is afgeschermd, maar schrijven ook: een bezoekverslag aanpassen zonder
+       * aan te melden hoort niet te kunnen.
+       */
+      test('zonder aanmelding kan er ook niets gewijzigd worden', async () => {
+        const k = await omgeving.store.createCustomer({ name: 'Hoeve Zonder Slot' });
+        const b = (await omgeving.store.addVisit(k.value.id, { notes: 'origineel' })).value;
+
+        for (const [pad, methode] of [
+          [`/api/bezoeken/${b.id}`, 'PATCH'],
+          [`/api/bezoeken/${b.id}`, 'DELETE'],
+          [`/api/klanten/${k.value.id}/bezoeken`, 'POST'],
+        ]) {
+          const res = await fetch(basis + pad, {
+            method: methode,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ notes: 'door een vreemde' }),
+          });
+          assert.equal(res.status, 401, `${methode} ${pad}`);
+        }
+        const na = await omgeving.store.getCustomer(k.value.id);
+        assert.equal(na.visits.length, 1, 'het bezoek hoort er nog te zijn');
+        assert.equal(na.visits[0].notes, 'origineel', 'en onveranderd');
+      });
+
       test('een onbekend e-mailadres krijgt dezelfde melding als een fout wachtwoord', async () => {
         await omgeving.db.exec('DELETE FROM login_attempts');
         const onbekend = await fetch(`${basis}/api/sessie`, {

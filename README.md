@@ -14,8 +14,9 @@ baan bent: je staat bij een klant en ziet meteen wie er nog in de buurt zit.
 - **Zoeken** op naam, contactpersoon, gemeente, postcode en notities
 - **Filters** op laatste bezoek (drie knoppen), regio (provincie) en tag
 - **Kleurgrenzen zelf instelbaar** — bepaal of rood na 3 maanden begint of na 6
-- **Klantdossier** met bedrijfsgegevens en een tijdlijn van bezoeken: datum, met wie,
-  en wat er besproken is
+- **Klantdossier** met bedrijfsgegevens en een tijdlijn van bezoeken: datum, welke
+  collega er geweest is, met wie hij sprak, en wat er besproken is — achteraf recht
+  te zetten als er iets fout getikt is
 - **CSV-import** uit je CRM die je zo vaak mag herhalen als je wil — bezoekverslagen
   gaan nooit verloren
 - **Login** voor jou en je collega's, iedereen ziet en beheert dezelfde gegevens
