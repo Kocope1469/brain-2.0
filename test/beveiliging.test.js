@@ -163,3 +163,31 @@ for (const dialect of dialecten('beveiliging')) {
     });
   });
 }
+
+/**
+ * Op Vercel worden de bestanden in public/ rechtstreeks van het CDN geserveerd en
+ * gaan ze dus niet door onze server. De headers staan daarom óók in vercel.json.
+ * Deze test bewaakt dat die twee niet uit elkaar lopen.
+ */
+describe('headers op het hostingplatform', () => {
+  test('vercel.json zet dezelfde beveiligingsheaders als de server', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { HEADERS } = await import('../server/beveiliging.js');
+    const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+
+    const regel = config.headers?.find((h) => h.source === '/(.*)');
+    assert.ok(regel, 'er hoort een headerregel voor alle paden te staan');
+    const platform = Object.fromEntries(regel.headers.map((h) => [h.key, h.value]));
+
+    for (const [naam, waarde] of Object.entries(HEADERS)) {
+      assert.equal(platform[naam], waarde, `${naam} verschilt tussen server en vercel.json`);
+    }
+    assert.match(platform['strict-transport-security'] ?? '', /max-age=\d+/);
+  });
+
+  test('alles wordt naar de app doorgestuurd wat niet als bestand bestaat', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+    assert.deepEqual(config.rewrites, [{ source: '/(.*)', destination: '/api' }]);
+  });
+});
