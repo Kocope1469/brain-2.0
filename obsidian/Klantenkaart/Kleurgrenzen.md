@@ -27,6 +27,17 @@ dan pas je het hier aan.
 Of vul zelf twee getallen in. Onderaan het venster staat in gewone taal wat je keuze
 betekent.
 
+## Wat hier ingesteld staat
+
+**Groen tot 180 dagen, oranje tot 300 dagen, daarna rood** — gekozen door Kobe in
+september 2026. Ruimer dan alle vier de voorstellen hierboven, en dat is een bewuste
+keuze: de bezoekcyclus bij Comsoltech ligt op maanden, niet op weken.
+
+Hou wel de tellers op de kleurknoppen in het oog. Staat bijna iedereen op groen, dan
+zegt de kaart je niets meer en mogen de grenzen strakker. Is het merendeel rood, dan
+zijn ze te strak. De verhouding tussen de drie groepen is de echte maatstaf, niet de
+getallen zelf.
+
 ## Wat je moet weten
 
 - **De instelling staat in de database**, niet in je browser. Pas jij ze aan, dan

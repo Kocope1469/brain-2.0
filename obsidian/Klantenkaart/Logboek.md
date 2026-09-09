@@ -60,3 +60,34 @@ Deze zijn opgelost, maar het patroon is leerzaam:
 > 1. Draait de database en is `DATABASE_URL` gezet? Negen van de tien problemen zitten daar.
 > 2. Een falende test betekent niet altijd dat de code stuk is. Twee keer bleek de
 >    *test* fout te zitten, niet de app.
+
+## 9 september 2026 — online, gevuld en in gebruik
+
+De app draait op Vercel met een Neon-database. 157 van de 159 CRM-regels zijn binnen;
+twee zijn geweigerd op een ongeldig btw-nummer en een ongeldig e-mailadres. De eerste
+collega heeft een account. De kleurgrenzen staan op 180 en 300 dagen.
+
+Onderweg vier dingen die stuk gingen en wat ze leerden:
+
+- **De kaart viel om op Vercel met "Cannot find module `server/data/be-plaatsen.js`".**
+  De oorzaak was een regel `data/` in `.vercelignore`. Die patronen werken zoals in
+  `.gitignore`: een pad zonder schuine streep vooraan sluit die naam op **elk** niveau
+  uit, dus ook `server/data/`. Nu staat er `/data/`. Er is een test bij die
+  `.vercelignore` uitleest en faalt als een patroon iets uitsluit dat de server
+  importeert.
+- **De CSV-import liep in een time-out** bij 159 regels: tien queries per klant. Nu
+  wordt alles in één keer ingelezen, in het geheugen vergeleken en enkel geschreven
+  wat verandert. 1001 → 164 queries; een herhaalde import kost er nog één.
+- **Alle 153 klanten stonden buiten de kaart**, want er waren geen coördinaten. Er is
+  nu een offline lijst van 1720 Belgische plaatsen; klanten in dezelfde gemeente
+  worden in een spiraal uit elkaar gezet zodat ze aanklikbaar blijven.
+- **De achtergrondkaart begon "API KEY REQUIRED" te tonen.** De aanbieder (CARTO)
+  wijzigde zijn voorwaarden. De standaardkaart hangt nu aan niets externs meer: het
+  zijn dezelfde OpenStreetMap-tegels, in de browser gedempt met een CSS-filter.
+
+> [!warning] Het patroon achter deze vier
+> Drie van de vier waren onzichtbaar tot iemand ze in productie tegenkwam. Tests op
+> de eigen machine zeggen niets over een hostingplatform met een eigen bestandssysteem,
+> eigen tijdslimieten en eigen negeerregels — en al helemaal niets over een externe
+> dienst die morgen zijn prijs verandert. **Wat je niet zelf in handen hebt, kan
+> wegvallen; zorg dat de standaardweg erbuiten loopt.**

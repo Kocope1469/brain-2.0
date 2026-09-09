@@ -12,11 +12,22 @@ Onderdeel van [[Klantenkaart]].
 
 ## Nu doen
 
-- [ ] **[[Online zetten]]** — het stappenplan doorlopen aan het bureau
-- [ ] Klanten importeren uit het CRM ([[CSV-import]])
-- [ ] Collega's toevoegen
-- [ ] [[Kleurgrenzen]] kiezen die bij het ritme van Comsoltech passen
+- [ ] Twee geweigerde CSV-regels rechtzetten en opnieuw importeren: **ENERSOL SRL**
+      (ongeldig btw-nummer) en **ELETECHNIK BELGIUM** (ongeldig e-mailadres). Die
+      twee klanten zitten niet in de app. Zie [[CSV-import]].
+- [ ] Elf klanten handmatig op de kaart zetten — vijf zonder gemeente, drie
+      buitenlandse (Assen NL, Genlis FR, Le Port), drie in gemeenten die de
+      plaatsenlijst niet kent (Affligem, Stasegem)
 - [ ] Maandelijkse CSV-export als back-up inplannen
+
+## Afgewerkt
+
+- [x] **[[Online zetten]]** — draait op Vercel met Neon-database
+- [x] Klanten importeren uit het CRM — 157 van de 159 regels binnen ([[CSV-import]])
+- [x] Collega's toevoegen — eerste collega heeft een account (september 2026)
+- [x] [[Kleurgrenzen]] gekozen: groen tot 180 dagen, oranje tot 300 dagen
+- [x] Achtergrondkaart: vier keuzes, alle vier nagekeken en werkend
+      ([[Wat het doet]])
 
 ## Bewust niet gebouwd
 

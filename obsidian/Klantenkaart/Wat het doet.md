@@ -62,20 +62,20 @@ Onder *Filter* staat een keuze voor de achtergrondkaart:
 |---|---|
 | **Rustig** | dezelfde kaart, maar bleker — de stippen vallen op (standaard) |
 | **Standaard** | de volledige OpenStreetMap, met elk gehucht en elke landweg |
-| **Grijs (uitproberen)** | grijstinten, het dichtst bij Google Maps |
-| **Straten (uitproberen)** | wegenkaart met meer straatnamen |
+| **Grijs** | grijstinten, het dichtst bij Google Maps |
+| **Straten** | wegenkaart met meer straatnamen |
 
 De keuze wordt per browser onthouden, dus jij en je collega's kunnen elk iets anders
-kiezen.
+kiezen. Alle vier zijn ze nagekeken en werkend bevonden (september 2026).
 
-**Waarom "uitproberen"?** *Rustig* en *Standaard* halen hun kaartbeeld bij
-OpenStreetMap; dat is de kaart die de app altijd al gebruikt en die blijft werken.
-*Rustig* is geen andere kaart maar dezelfde, in je browser bleker gemaakt — daar kan
-dus niets aan wegvallen. *Grijs* en *Straten* komen van Esri, een externe dienst.
-Die zijn niet vanuit de ontwikkelomgeving te testen: werken ze bij jou, hou ze; zie
-je een watermerk of een lege kaart, gebruik dan *Rustig*. Een eerdere poging met een
-andere aanbieder (CARTO) is precies daarop stukgelopen — die begon plots een
-API-sleutel te eisen.
+**Waarom Rustig de standaard is.** *Rustig* en *Standaard* halen hun kaartbeeld bij
+OpenStreetMap; dat is de bron die de app altijd al gebruikt. *Rustig* is geen andere
+kaart maar dezelfde, in je browser bleker gemaakt — daar kan dus niets aan wegvallen.
+*Grijs* en *Straten* komen van Esri, een externe dienst. Die werken, maar het is niet
+onze dienst: zie je daar ooit een watermerk of een lege kaart verschijnen, schakel dan
+terug naar *Rustig*. Een eerdere poging met een derde aanbieder (CARTO) is precies
+daarop stukgelopen — die begon plots een API-sleutel te eisen, met een watermerk over
+de hele kaart als gevolg.
 
 ## Zoeken en filteren
 

@@ -20,9 +20,9 @@ const ESRI = 'Tegels &copy; <a href="https://www.esri.com">Esri</a>';
  *
  * "Rustig" gebruikt dezelfde tegels maar dempt ze in de browser met een CSS-filter:
  * minder kleur, minder contrast. Dat vraagt geen enkele externe dienst en kan dus
- * ook niet wegvallen of ineens een sleutel eisen — wat met een vorige poging wel
- * gebeurde. De andere lagen komen van elders en kunnen dat wel; wie ze kiest ziet
- * meteen of ze werken.
+ * ook niet wegvallen of ineens een sleutel eisen — wat met een vorige poging (CARTO)
+ * wel gebeurde. Het is daarom de standaard: valt Esri ooit weg, dan blijft de kaart
+ * die je bij het opstarten krijgt gewoon werken.
  */
 export const KAARTLAGEN = {
   rustig: {
@@ -39,13 +39,13 @@ export const KAARTLAGEN = {
     maxZoom: 19,
   },
   grijs: {
-    naam: 'Grijs (uitproberen)',
+    naam: 'Grijs',
     url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     attributie: ESRI,
     maxZoom: 16,
   },
   straten: {
-    naam: 'Straten (uitproberen)',
+    naam: 'Straten',
     url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     attributie: ESRI,
     maxZoom: 19,
