@@ -28,8 +28,9 @@ Onderdeel van [[Klantenkaart]]. **Dit is de eerstvolgende stap.** Reken op een h
    alles laten staan → *Deploy*. De app werkt nog niet volledig; dat is normaal.
 4. **Maak een database**: tabblad *Storage* → *Create Database* → **Neon** (Postgres)
    → gratis plan → *Connect*.
-5. **Controleer de variabele** onder *Settings → Environment Variables*. Er moet
-   `DATABASE_URL` staan.
+5. **Controleer** onder *Settings → Environment Variables* dat er een Postgres-adres
+   staat. De naam maakt niet uit — `DATABASE_URL`, `POSTGRES_URL` en de andere Neon-
+   namen worden allemaal herkend.
 6. **Deploy opnieuw**: *Deployments* → drie puntjes bij de bovenste → *Redeploy*.
 7. **Maak je account aan**: open de URL, je krijgt "Eerste gebruiker aanmaken".
    Naam, e-mail, wachtwoord van minstens tien tekens.
@@ -38,10 +39,12 @@ Onderdeel van [[Klantenkaart]]. **Dit is de eerstvolgende stap.** Reken op een h
 
 ## De twee valkuilen
 
-> [!danger] Valkuil 1 — de verkeerde variabelenaam
-> Vercel maakt bij Neon soms alleen `POSTGRES_URL` aan. Staat er geen `DATABASE_URL`,
-> dan valt de app terug op een tijdelijke database en **verdwijnt je data bij elke
-> klik**. Maak die variabele desnoods zelf bij met dezelfde waarde.
+> [!danger] Valkuil 1 — helemaal geen database gekoppeld
+> Vroeger sloeg de app hierop stuk als de variabele anders heette; sinds 9 september
+> herkent hij alle namen die Vercel en Neon gebruiken. Wat overblijft: koppel je
+> helemaal geen database, dan schrijft hij naar een tijdelijke schijf en **verdwijnt
+> je data bij elke aanvraag**. De app zet dan bij het opstarten een luide
+> waarschuwing in de logs — kijk daar als iets niet blijft staan.
 
 > [!danger] Valkuil 2 — vergeten opnieuw te deployen
 > De app leest de database bij het opstarten. Koppel je de database zonder daarna
@@ -49,8 +52,10 @@ Onderdeel van [[Klantenkaart]]. **Dit is de eerstvolgende stap.** Reken op een h
 
 ## Als er iets misgaat
 
-Eerste vraag is altijd: **draait de database en is `DATABASE_URL` gezet?** Negen van
-de tien problemen zitten daar. Pas daarna naar de code kijken.
+Kijk eerst in de Vercel-logs naar de regel `[klantenkaart] opslag: …` bij het
+opstarten. Die zegt letterlijk waar je gegevens heen gaan. Staat daar een
+waarschuwing, dan is er geen database gekoppeld — dat is negen van de tien keer het
+probleem. Pas daarna naar de code kijken.
 
 ## Eigen domein
 

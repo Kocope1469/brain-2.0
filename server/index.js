@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openDb } from './db.js';
+import { openDb, beschrijfOpslag } from './db.js';
 import { Store } from './store.js';
 import { Auth, leesCookie, sessieCookie } from './auth.js';
 import { zetHeaders, bezoekerIp, Pogingen } from './beveiliging.js';
@@ -312,6 +312,8 @@ export function createApp({ store, auth, pogingen, instellingen, geocodeImpl = g
 
 /** Zet database, store en auth klaar. Eén keer per proces. */
 export async function bouwApp(opties = {}) {
+  // meteen zichtbaar in de logs waar de gegevens heen gaan, ook op Vercel
+  console.log(`[klantenkaart] opslag: ${beschrijfOpslag()}`);
   const db = await openDb(opties);
   const auth = new Auth(db);
   const store = new Store(db);

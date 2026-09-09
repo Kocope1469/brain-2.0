@@ -25,14 +25,18 @@ npm install
 npm run seed     # negen voorbeeldklanten
 npm start        # http://localhost:3000
 npm run dev      # herstart bij wijzigingen
-npm test         # 113 tests op SQLite
+npm test         # 123 tests op SQLite
 
 # de belangrijke testvorm: ook tegen Postgres
-TEST_DATABASE_URL=postgres://... npm test    # 186 tests
+TEST_DATABASE_URL=postgres://... npm test    # 197 tests
 ```
 
-Omgevingsvariabelen: `DATABASE_URL` (Postgres, anders SQLite), `KLANTENKAART_DB`
-(pad naar het SQLite-bestand), `PORT`.
+Omgevingsvariabelen: een Postgres-adres onder `DATABASE_URL`, `POSTGRES_URL`,
+`POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL` of `NEON_DATABASE_URL` (anders
+SQLite), `KLANTENKAART_DB` (pad naar het SQLite-bestand), `PORT`.
+
+Bij het opstarten logt de app één regel — `[klantenkaart] opslag: …` — die zegt waar
+de gegevens heen gaan. Dat is het eerste wat je nakijkt als er iets niet blijft staan.
 
 ## Bestanden
 
@@ -50,7 +54,7 @@ server/
   csv.js            CSV lezen en schrijven
   seed.js           voorbeeldklanten
 public/             interface: kaart, dossier, formulieren, inlogpagina, iconen
-test/               186 tests, allemaal op beide databases
+test/               197 tests, allemaal op beide databases
 ```
 
 ## Database

@@ -34,7 +34,7 @@ en je ziet het klantdossier met de volledige bezoekgeschiedenis.
 | **Online** | ❌ nog niet — zie [[Online zetten]] |
 | **Schaal** | ~100 klanten nu, groeiend naar enkele honderden |
 | **Gebruikers** | Kobe + collega's, iedereen dezelfde rechten |
-| **Tests** | 186 (113 op SQLite, de rest ook op Postgres) |
+| **Tests** | 197 (123 op SQLite, de rest ook op Postgres) |
 | **Omvang** | ~3.000 regels eigen code, 1 npm-pakket |
 
 ## De notities

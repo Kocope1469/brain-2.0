@@ -249,7 +249,42 @@ class PostgresDb {
  * Opent de database. Zonder DATABASE_URL wordt het SQLite in een bestand
  * (of ':memory:' voor tests), anders Postgres.
  */
-export async function openDb({ url = process.env.DATABASE_URL, file } = {}) {
+/**
+ * Namen waaronder een Postgres-adres kan binnenkomen, op volgorde. Vercel zet bij
+ * een Neon-koppeling niet altijd DATABASE_URL maar soms alleen POSTGRES_URL; door
+ * die allemaal te aanvaarden kan de app niet per ongeluk terugvallen op een
+ * tijdelijke SQLite-schijf waar je data bij elke aanvraag verdwijnt.
+ */
+const URL_NAMEN = ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_URL_NON_POOLING',
+  'POSTGRES_PRISMA_URL', 'NEON_DATABASE_URL'];
+
+/** @returns {{url: string, naam: string} | null} */
+export function vindDatabaseUrl(omgeving = process.env) {
+  for (const naam of URL_NAMEN) {
+    const waarde = String(omgeving[naam] ?? '').trim();
+    if (waarde) return { url: waarde, naam };
+  }
+  return null;
+}
+
+/** Waar de gegevens terechtkomen, in één zin. Wordt bij het opstarten gelogd. */
+export function beschrijfOpslag(omgeving = process.env) {
+  const gevonden = vindDatabaseUrl(omgeving);
+  if (gevonden) {
+    const host = (() => {
+      try { return new URL(gevonden.url).host; } catch { return 'onbekende host'; }
+    })();
+    return `Postgres op ${host} (via ${gevonden.naam})`;
+  }
+  const pad = omgeving.KLANTENKAART_DB || join(ROOT, 'data', 'klantenkaart.db');
+  const vluchtig = !!(omgeving.VERCEL || omgeving.AWS_LAMBDA_FUNCTION_NAME);
+  return vluchtig
+    ? `⚠ GEEN DATABASE INGESTELD — de gegevens gaan naar een tijdelijk bestand (${pad}) `
+      + `en zijn bij de volgende aanvraag weg. Zet ${URL_NAMEN[0]} in de instellingen van je hosting.`
+    : `SQLite-bestand ${pad}`;
+}
+
+export async function openDb({ url = vindDatabaseUrl()?.url, file } = {}) {
   let db;
   if (url) {
     const { default: pg } = await import('pg');
