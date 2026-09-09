@@ -144,3 +144,63 @@ describe('de serverless-ingang', () => {
     }
   });
 });
+
+/**
+ * Hostingplatforms laten je zelf een voorvoegsel kiezen voor de variabelen die ze
+ * aanmaken. De app mag daar niet op vastlopen: een Postgres-adres is een
+ * Postgres-adres, hoe de variabele ook heet.
+ */
+describe('een zelfgekozen naam voor de variabele', () => {
+  const ADRES = 'postgres://gebruiker:geheim@ep-koel-1.eu-central-1.aws.neon.tech/klanten';
+
+  test('herkent STORAGE_URL, de naam die Vercel standaard voorstelt', () => {
+    assert.deepEqual(vindDatabaseUrl({ STORAGE_URL: ADRES }), { url: ADRES, naam: 'STORAGE_URL' });
+  });
+
+  test('vindt een adres ook onder een naam die we niet kennen', () => {
+    const g = vindDatabaseUrl({ COMSOLTECH_KAART_URL: ADRES });
+    assert.deepEqual(g, { url: ADRES, naam: 'COMSOLTECH_KAART_URL' });
+  });
+
+  test('bekende namen gaan voor op de zoektocht', () => {
+    const g = vindDatabaseUrl({ ZZZ_URL: 'postgres://verkeerd/db', DATABASE_URL: ADRES });
+    assert.equal(g.naam, 'DATABASE_URL');
+  });
+
+  test('kiest de gepoolde verbinding boven de directe', () => {
+    const g = vindDatabaseUrl({ IETS_URL_UNPOOLED: 'postgres://direct/db', IETS_URL: ADRES });
+    assert.equal(g.naam, 'IETS_URL');
+  });
+
+  test('trapt niet in variabelen die geen adres zijn', () => {
+    assert.equal(vindDatabaseUrl({ PATH: '/usr/bin', NODE_ENV: 'production', HOME: '/root' }), null);
+    assert.equal(vindDatabaseUrl({ IETS_URL: 'https://example.com' }), null);
+    assert.equal(vindDatabaseUrl({ NOTITIE: 'gebruik postgres:// voor de database' }), null);
+  });
+
+  test('postgresql:// werkt net zo goed als postgres://', () => {
+    const lang = ADRES.replace('postgres://', 'postgresql://');
+    assert.equal(vindDatabaseUrl({ MIJN_DB: lang }).url, lang);
+  });
+});
+
+describe('twee valkuilen die de zoektocht zelf met zich meebracht', () => {
+  test('een variabele die voor tests bedoeld is wordt nooit de echte database', () => {
+    for (const naam of ['TEST_DATABASE_URL', 'CI_DATABASE_URL', 'SHADOW_DATABASE_URL',
+      'MIJN_TEST_URL', 'EXAMPLE_URL']) {
+      assert.equal(vindDatabaseUrl({ [naam]: 'postgres://ergens/db' }), null, naam);
+    }
+  });
+
+  test('een uitdrukkelijk meegegeven bestand wint van de omgeving', async () => {
+    const bewaard = { ...process.env };
+    process.env.DATABASE_URL = 'postgres://zou-niet-gebruikt-mogen-worden/db';
+    try {
+      const db = await openDb({ file: ':memory:' });
+      assert.equal(db.dialect, 'sqlite', 'wie om een bestand vraagt, wil geen Postgres');
+      await db.close();
+    } finally {
+      process.env = bewaard;
+    }
+  });
+});

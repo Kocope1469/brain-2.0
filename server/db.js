@@ -256,13 +256,37 @@ class PostgresDb {
  * tijdelijke SQLite-schijf waar je data bij elke aanvraag verdwijnt.
  */
 const URL_NAMEN = ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_URL_NON_POOLING',
-  'POSTGRES_PRISMA_URL', 'NEON_DATABASE_URL'];
+  'POSTGRES_PRISMA_URL', 'NEON_DATABASE_URL', 'STORAGE_URL'];
 
-/** @returns {{url: string, naam: string} | null} */
+/** Ziet een waarde eruit als een Postgres-adres? */
+const isPostgresAdres = (waarde) => /^postgres(ql)?:\/\/\S+$/i.test(String(waarde ?? '').trim());
+
+/**
+ * Zoekt het adres van de database. Eerst de namen die we kennen, in vaste volgorde.
+ * Vindt hij die niet, dan kijkt hij of er érgens in de omgeving een Postgres-adres
+ * staat — hostingplatforms laten je vaak zelf een voorvoegsel kiezen, en dan heet de
+ * variabele bijvoorbeeld MIJNDB_URL. Liever die vinden dan de app laten falen op een
+ * naam.
+ *
+ * @returns {{url: string, naam: string} | null}
+ */
 export function vindDatabaseUrl(omgeving = process.env) {
   for (const naam of URL_NAMEN) {
     const waarde = String(omgeving[naam] ?? '').trim();
     if (waarde) return { url: waarde, naam };
+  }
+
+  // laatste redmiddel: elke variabele met een Postgres-adres, alfabetisch zodat de
+  // keuze voorspelbaar blijft als er meerdere staan. Wat expliciet voor tests of
+  // scripts bedoeld is, blijft buiten beschouwing — dat mag nooit stilletjes je
+  // echte database worden.
+  const overige = Object.keys(omgeving).sort()
+    .filter((naam) => !/^(TEST|CI|EXAMPLE|SAMPLE|DUMMY|SHADOW|MIGRATE)[_A-Z]*$|_TEST_/i.test(naam))
+    .filter((naam) => isPostgresAdres(omgeving[naam]));
+  if (overige.length) {
+    // een niet-gepoolde verbinding is de mindere keuze wanneer er ook een gewone is
+    const voorkeur = overige.find((n) => !/UNPOOLED|NON_POOLING|DIRECT/i.test(n)) ?? overige[0];
+    return { url: String(omgeving[voorkeur]).trim(), naam: voorkeur };
   }
   return null;
 }
@@ -288,7 +312,13 @@ export function beschrijfOpslag(omgeving = process.env) {
 export const isServerless = (omgeving = process.env) =>
   !!(omgeving.VERCEL || omgeving.AWS_LAMBDA_FUNCTION_NAME || omgeving.NETLIFY);
 
-export async function openDb({ url = vindDatabaseUrl()?.url, file } = {}) {
+/**
+ * Opent de database. Een uitdrukkelijk meegegeven `file` wint altijd van wat er in
+ * de omgeving staat: wie om een bestand vraagt, wil geen Postgres.
+ */
+export async function openDb({ url, file } = {}) {
+  // pas hier bepalen: in de parameterlijst bestaat `file` nog niet
+  url ??= file ? undefined : vindDatabaseUrl()?.url;
   // zonder database op een serverless platform is er geen zinnige uitweg: de schijf
   // is niet schrijfbaar, en wél schrijven zou betekenen dat alles stil verdwijnt
   if (!url && !file && isServerless()) {

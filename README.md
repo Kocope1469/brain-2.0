@@ -37,7 +37,7 @@ van dat bestand.
 
 ```bash
 npm run dev      # herstart automatisch bij wijzigingen
-npm test         # 128 tests op SQLite
+npm test         # 136 tests op SQLite
 ```
 
 ## Online zetten op Vercel — stap voor stap
@@ -63,10 +63,12 @@ normaal: de app staat er, de opslag komt in de volgende stap.
 Database* → kies **Neon** (Postgres). Neem het gratis plan; dat is ruim voldoende voor
 een paar honderd klanten. Klik *Connect* om hem aan dit project te koppelen.
 
-Vercel zet daarbij zelf een omgevingsvariabele klaar. Hoe die heet maakt niet uit:
-de app aanvaardt `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`,
-`POSTGRES_PRISMA_URL` en `NEON_DATABASE_URL`. Staat er geen enkele van, dan meldt de
-app dat bij het opstarten in de logs met een duidelijke waarschuwing.
+Vraagt de koppeling om een *Custom Prefix*, vul dan `DATABASE` in — dan heet de
+variabele `DATABASE_URL`. Maar het hoeft niet: de app herkent alle gangbare namen en
+zoekt anders zelf naar een Postgres-adres in de omgeving, onder welke naam ook.
+Variabelen die duidelijk voor tests bedoeld zijn (`TEST_…`, `CI_…`, `SHADOW_…`)
+blijven daarbij buiten beschouwing. Vindt hij helemaal niets, dan zegt de app dat bij
+het opstarten met een duidelijke waarschuwing in de logs.
 
 **5. Deploy opnieuw.** Ga naar *Deployments*, klik rechts bij de bovenste op de drie
 puntjes en kies *Redeploy*. Dit is nodig omdat de app de database pas bij het opstarten
@@ -237,7 +239,7 @@ server/
   seed.js        voorbeeldklanten
 public/          de interface: kaart, dossier, formulieren, inlogpagina, iconen
   beveiliging.js hashes, sessietokens, inlogpogingen, headers
-test/            202 tests, die allemaal op beide databases draaien
+test/            210 tests, die allemaal op beide databases draaien
 ```
 
 ## Testen

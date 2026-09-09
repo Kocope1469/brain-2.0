@@ -28,9 +28,9 @@ Onderdeel van [[Klantenkaart]]. **Dit is de eerstvolgende stap.** Reken op een h
    alles laten staan → *Deploy*. De app werkt nog niet volledig; dat is normaal.
 4. **Maak een database**: tabblad *Storage* → *Create Database* → **Neon** (Postgres)
    → gratis plan → *Connect*.
-5. **Controleer** onder *Settings → Environment Variables* dat er een Postgres-adres
-   staat. De naam maakt niet uit — `DATABASE_URL`, `POSTGRES_URL` en de andere Neon-
-   namen worden allemaal herkend.
+5. **Vraagt de koppeling om een *Custom Prefix*?** Vul `DATABASE` in, dan heet de
+   variabele `DATABASE_URL`. Nodig is het niet: de app zoekt zelf een Postgres-adres
+   in de omgeving, onder welke naam ook.
 6. **Deploy opnieuw**: *Deployments* → drie puntjes bij de bovenste → *Redeploy*.
 7. **Maak je account aan**: open de URL, je krijgt "Eerste gebruiker aanmaken".
    Naam, e-mail, wachtwoord van minstens tien tekens.
