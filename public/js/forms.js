@@ -6,6 +6,39 @@ const veld = (naam, label, waarde = '', extra = '') =>
      <input id="f-${naam}" name="${naam}" value="${esc(waarde)}" ${extra}></div>`;
 
 /**
+ * Het hoofdcontact: naam, telefoon en e-mail die op de klant zelf staan. Die drie
+ * velden komen uit de CRM-export, dus een wijziging hier houdt maar stand tot de
+ * volgende import -- dat zegt het venster er ook bij, want stil laten overschrijven
+ * is erger dan het niet kunnen wijzigen.
+ */
+export function hoofdcontactFormulier(klant, naOpslaan = () => {}) {
+  modal({
+    titel: `Hoofdcontact bij ${klant.name}`,
+    bevestig: 'Opslaan',
+    body: `
+      <p class="terzijde">Deze drie velden staan op de klant zelf en komen uit je
+        CRM-export. Levert het CRM hier bij een volgende import iets anders aan, dan
+        wordt je wijziging overschreven. Iemand die het CRM niet kent, zet je beter
+        als aparte contactpersoon.</p>
+      <div class="fields">
+        ${veld('contact_name', 'Naam', klant.contact_name, 'autocomplete="off"')}
+        ${veld('phone', 'Telefoon', klant.phone)}
+        <div class="span-2">${veld('email', 'E-mail', klant.email, 'type="email"')}</div>
+      </div>`,
+    onSubmit: async (data) => {
+      try {
+        await api.wijzigKlant(klant.id, data);
+        toast('Hoofdcontact bijgewerkt.');
+        await naOpslaan();
+      } catch (err) {
+        toonFouten(err.fouten ?? [err.message]);
+        return false;
+      }
+    },
+  });
+}
+
+/**
  * Een contactpersoon bij de klant toevoegen of bijwerken. Hetzelfde venster voor
  * allebei; alleen de naam is verplicht, want vaak weet je in het begin niet meer.
  */

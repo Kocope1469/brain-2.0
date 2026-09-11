@@ -1,6 +1,6 @@
 import { api, probeer } from './api.js';
 import { esc, datum, geleden, vandaag, btwFormaat, initialen, BUCKETLABEL, KLEUREN } from './util.js';
-import { klantFormulier, bezoekFormulier, contactFormulier } from './forms.js';
+import { klantFormulier, bezoekFormulier, contactFormulier, hoofdcontactFormulier } from './forms.js';
 
 /* Het potlood als tekening: de tekens ✎ en ✏ vallen per lettertype anders uit,
    van bijna onzichtbaar dun tot een gekleurde emoji. */
@@ -15,22 +15,34 @@ const POTLOOD = `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="tr
  * is ons probleem, niet het zijne.
  */
 function contactLijst(k) {
-  const uitCrm = k.contact_name || k.phone || k.email
-    ? [{ naam: k.contact_name, functie: '', phone: k.phone, email: k.email, crm: true }]
-    : [];
-  return [...uitCrm, ...(k.contacten ?? []).map((c) => ({
+  // de CRM-regel staat er altijd, ook leeg: anders is er geen plek om te beginnen
+  // bij een klant waarvan het CRM enkel een e-mailadres meegaf
+  const uitCrm = {
+    naam: k.contact_name, functie: '', phone: k.phone, email: k.email, crm: true,
+    leeg: !(k.contact_name || k.phone || k.email),
+  };
+  return [uitCrm, ...(k.contacten ?? []).map((c) => ({
     id: c.id, naam: c.name, functie: c.functie, phone: c.phone, email: c.email, notes: c.notes,
   }))];
 }
+
+/** Hoeveel er echt iets in staat -- de lege CRM-regel telt niet mee. */
+const aantalContacten = (k) => contactLijst(k).filter((c) => !c.leeg).length;
 
 function contactRij(c) {
   return `
     <li>
       <div class="contact-kop">
-        <strong>${esc(c.naam || '(naam onbekend)')}</strong>
-        ${c.crm ? '<span class="merk">uit CRM</span>' : ''}
+        <strong class="${c.leeg ? 'muted' : ''}">${c.leeg
+    ? 'Nog niet ingevuld'
+    : esc(c.naam || '(naam onbekend)')}</strong>
+        ${c.crm && !c.leeg ? '<span class="merk">uit CRM</span>' : ''}
         ${c.functie ? `<span class="muted">${esc(c.functie)}</span>` : ''}
-        ${c.crm ? '' : `<span class="bezoek-knoppen">
+        ${c.crm
+    ? `<span class="bezoek-knoppen">
+          <button class="btn-icoon" data-bewerk-hoofdcontact title="Hoofdcontact bewerken" aria-label="Hoofdcontact bewerken">${POTLOOD}</button>
+        </span>`
+    : `<span class="bezoek-knoppen">
           <button class="btn-icoon" data-bewerk-contact="${c.id}" title="Contactpersoon bewerken" aria-label="Contactpersoon bewerken">${POTLOOD}</button>
           <button class="btn-icoon" data-weg-contact="${c.id}" title="Contactpersoon verwijderen" aria-label="Contactpersoon verwijderen">✕</button>
         </span>`}
@@ -153,14 +165,11 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
       </dl>
 
       <section class="contacten">
-        <h3>Contactpersonen <span class="muted">(${contactLijst(k).length})</span>
+        <h3>Contactpersonen <span class="muted">(${aantalContacten(k)})</span>
           <button class="linklike" id="nieuw-contact">+ Toevoegen</button></h3>
-        ${contactLijst(k).length
-    ? `<ul class="contactlijst">${contactLijst(k).map(contactRij).join('')}</ul>`
-    : '<p class="leeg">Nog geen contactpersoon genoteerd.</p>'}
-        ${k.contact_name || k.phone || k.email
-    ? '<p class="terzijde">Wie uit het CRM komt, wordt bij elke import ververst — wijzig die via "Bewerken". Wat je hier zelf bijzet, blijft staan.</p>'
-    : ''}
+        <ul class="contactlijst">${contactLijst(k).map(contactRij).join('')}</ul>
+        <p class="terzijde">De regel met <em>uit CRM</em> komt uit je CRM-export en wordt bij
+          elke import ververst. Wat je er zelf bijzet, blijft staan.</p>
       </section>
 
       ${k.notes ? `<section class="notitie"><h3>Notities</h3><div class="notitie-tekst">${esc(k.notes)}</div></section>` : ''}
@@ -211,6 +220,7 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
     };
   }
   el.querySelector('#nieuw-contact').onclick = () => contactFormulier(k, ververs);
+  el.querySelector('[data-bewerk-hoofdcontact]').onclick = () => hoofdcontactFormulier(k, ververs);
   for (const knop of el.querySelectorAll('[data-bewerk-contact]')) {
     knop.onclick = () => contactFormulier(
       k, ververs, k.contacten.find((c) => String(c.id) === knop.dataset.bewerkContact));

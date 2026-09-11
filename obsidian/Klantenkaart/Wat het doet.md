@@ -122,10 +122,15 @@ verplicht — vaak weet je in het begin niet meer dan dat. Elke contactpersoon h
 potloodje om hem bij te werken.
 
 De eerste in de lijst draagt het label **uit CRM**. Dat is de contactpersoon die uit
-je CRM-export komt, en die wordt bij **elke import ververst**. Wijzig die dus via de
-knop *Bewerken* van de klant, niet door er een tweede fiche naast te zetten — anders
-is je wijziging na de volgende import weg. Wat je zelf toevoegt, raakt de import
-nooit aan.
+je CRM-export komt (naam, telefoon, e-mail op de klant zelf). Ook die heeft een
+potloodje, dus je kan hem gewoon aanvullen — handig bij klanten waar het CRM enkel een
+e-mailadres meegaf en de naam leeg staat. Staat er nog helemaal niets, dan zie je
+*Nog niet ingevuld* met hetzelfde potloodje.
+
+Hou wel in gedachten dat die drie velden bij **elke import ververst** worden. Levert
+je CRM daar later iets anders aan, dan is je wijziging weg. Het venster zegt dat er
+ook bij. Iemand die je CRM niet kent, zet je dus beter als aparte contactpersoon —
+wat je zelf toevoegt, raakt de import nooit aan.
 
 Zoeken werkt ook op contactpersonen, op naam én functie. Typ "janssens" of
 "technieker" en je vindt het bedrijf terug, ook als je de bedrijfsnaam kwijt bent.
