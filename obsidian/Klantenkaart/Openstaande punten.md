@@ -24,7 +24,12 @@ Onderdeel van [[Klantenkaart]].
 - [ ] Elf klanten handmatig op de kaart zetten — vijf zonder gemeente, drie
       buitenlandse (Assen NL, Genlis FR, Le Port), drie in gemeenten die de
       plaatsenlijst niet kent (Affligem, Stasegem)
-- [ ] Maandelijkse CSV-export als back-up inplannen
+- [ ] Maandelijkse CSV-export als back-up inplannen. **Let op wat die export wél en
+      niet bevat:** één regel per klant met de bedrijfsgegevens en het hoofdcontact.
+      Bezoekverslagen en zelf toegevoegde contactpersonen zitten er *niet* in — net
+      het deel dat je nergens anders terugvindt. Voor die gegevens leun je op de
+      back-ups van Neon. Wil je ze ook in een eigen bestand, dan is daar een aparte
+      export voor nodig; die bestaat nog niet.
 
 ## Afgewerkt
 
@@ -37,6 +42,7 @@ Onderdeel van [[Klantenkaart]].
 - [x] Keuzelijst met klanten naast de kaart, onder de tellingen
 - [x] Bij een bezoek kiezen welke collega er geweest is
 - [x] Een genoteerd bezoek achteraf kunnen rechtzetten
+- [x] Meerdere contactpersonen per bedrijf ([[Wat het doet]])
 
 ## Bewust niet gebouwd
 

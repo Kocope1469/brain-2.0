@@ -144,6 +144,32 @@ export function validateCustomer(input = {}, { partial = false } = {}) {
 }
 
 /**
+ * Een contactpersoon bij een klant. Een bedrijf heeft er vaak meer dan een: de
+ * zaakvoerder, de technieker, iemand van de boekhouding. Alleen de naam is verplicht
+ * -- vaak weet je in het begin niet meer dan dat.
+ */
+export function validateContact(input = {}, { partial = false } = {}) {
+  const errors = [];
+  const value = {};
+  const has = (k) => Object.hasOwn(input, k);
+
+  if (!partial || has('name')) {
+    const naam = clean(input.name, 120);
+    if (!naam) errors.push('Naam van de contactpersoon is verplicht.');
+    value.name = naam;
+  }
+  if (!partial || has('email')) {
+    const email = clean(input.email, 200).toLowerCase();
+    if (email && !EMAIL_RE.test(email)) errors.push('E-mailadres is ongeldig.');
+    value.email = email;
+  }
+  for (const [key, max] of [['functie', 120], ['phone', 40], ['notes', 2000]]) {
+    if (!partial || has(key)) value[key] = clean(input[key], max);
+  }
+  return errors.length ? { ok: false, errors } : { ok: true, value };
+}
+
+/**
  * Een bezoek. `with_whom` is wie je bij de klant gesproken hebt; `author` is de
  * collega die er geweest is. Dat zijn twee verschillende mensen -- de eerste werkt
  * bij de klant, de tweede bij Comsoltech.

@@ -5,6 +5,41 @@ const veld = (naam, label, waarde = '', extra = '') =>
   `<div class="field"><label for="f-${naam}">${esc(label)}</label>
      <input id="f-${naam}" name="${naam}" value="${esc(waarde)}" ${extra}></div>`;
 
+/**
+ * Een contactpersoon bij de klant toevoegen of bijwerken. Hetzelfde venster voor
+ * allebei; alleen de naam is verplicht, want vaak weet je in het begin niet meer.
+ */
+export function contactFormulier(klant, naOpslaan = () => {}, contact = null) {
+  const c = contact ?? {};
+  modal({
+    titel: contact ? `${c.name} bewerken` : `Contactpersoon bij ${klant.name}`,
+    bevestig: contact ? 'Opslaan' : 'Contactpersoon toevoegen',
+    body: `
+      <div class="fields">
+        ${veld('name', 'Naam *', c.name, 'required autocomplete="off"')}
+        ${veld('functie', 'Functie', c.functie, 'placeholder="Zaakvoerder, technieker, boekhouding"')}
+        ${veld('phone', 'Telefoon', c.phone)}
+        ${veld('email', 'E-mail', c.email, 'type="email"')}
+        <div class="field span-2">
+          <label for="f-notes">Notitie</label>
+          <textarea id="f-notes" name="notes" rows="2"
+            placeholder="Bereikbaar na 16u">${esc(c.notes ?? '')}</textarea>
+        </div>
+      </div>`,
+    onSubmit: async (data) => {
+      try {
+        if (contact) await api.wijzigContact(c.id, data);
+        else await api.nieuwContact(klant.id, data);
+        toast(contact ? 'Contactpersoon bijgewerkt.' : 'Contactpersoon toegevoegd.');
+        await naOpslaan();
+      } catch (err) {
+        toonFouten(err.fouten ?? [err.message]);
+        return false;
+      }
+    },
+  });
+}
+
 /** De naam waaronder een collega in de app bekend staat. */
 const collegaNaam = (g) => g.name?.trim() || g.email;
 
@@ -21,6 +56,16 @@ async function collegas() {
   })().catch((err) => { collegasBelofte = undefined; throw err; });
   return collegasBelofte;
 }
+
+/**
+ * De namen die de app al van deze klant kent, als suggestie bij "Met wie gesproken".
+ * Het blijft een gewoon tekstveld: je spreekt wel vaker iemand die nog nergens
+ * genoteerd staat, en dan moet je niet eerst een contactfiche gaan aanmaken.
+ */
+const bekendeContacten = (klant) => [...new Set([
+  klant.contact_name,
+  ...(klant.contacten ?? []).map((c) => c.name),
+].filter(Boolean))];
 
 /**
  * Bezoek noteren of rechtzetten: datum, wie er geweest is, wie je gesproken hebt,
@@ -53,7 +98,8 @@ export async function bezoekFormulier(klant, naOpslaan = () => {}, bezoek = null
          <select id="f-author" name="author">${opties(keuzes, gekozen)}</select></div>`
     : veld('author', 'Bezocht door', gekozen)}
         ${veld('with_whom', 'Met wie gesproken',
-    bezoek?.with_whom ?? klant.contact_name?.split(' ')[0] ?? '', 'placeholder="Peter"')}
+    bezoek?.with_whom ?? klant.contact_name ?? '', 'list="bekende-contacten" placeholder="Peter"')}
+        <datalist id="bekende-contacten">${opties(bekendeContacten(klant))}</datalist>
         <div class="field span-2">
           <label for="f-notes">Waarover ging het?</label>
           <textarea id="f-notes" name="notes" rows="4"

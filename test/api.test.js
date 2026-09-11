@@ -185,6 +185,45 @@ for (const dialect of dialecten('api')) {
       });
     });
 
+    describe('contactpersonen', () => {
+      test('toevoegen, bijwerken en verwijderen via de API', async () => {
+        const { body: k } = await maak({ contact_name: 'Johan Dewaegeneer' });
+
+        const nieuw = await vraag(`/api/klanten/${k.id}/contacten`, {
+          method: 'POST', body: { name: 'Piet Janssens', functie: 'technieker', phone: '0470 11 22 33' },
+        });
+        assert.equal(nieuw.status, 201);
+
+        assert.equal((await vraag(`/api/klanten/${k.id}`)).body.contacten.length, 1);
+
+        const gewijzigd = await vraag(`/api/contacten/${nieuw.body.id}`, {
+          method: 'PATCH', body: { functie: 'hoofdtechnieker' },
+        });
+        assert.equal(gewijzigd.status, 200);
+        const [na] = (await vraag(`/api/klanten/${k.id}`)).body.contacten;
+        assert.equal(na.functie, 'hoofdtechnieker');
+        assert.equal(na.phone, '0470 11 22 33');
+
+        assert.equal((await vraag(`/api/contacten/${nieuw.body.id}`, { method: 'DELETE' })).status, 200);
+        assert.equal((await vraag(`/api/klanten/${k.id}`)).body.contacten.length, 0);
+      });
+
+      test('een contactpersoon zonder naam wordt geweigerd', async () => {
+        const { body: k } = await maak();
+        assert.equal((await vraag(`/api/klanten/${k.id}/contacten`, {
+          method: 'POST', body: { functie: 'technieker' },
+        })).status, 422);
+      });
+
+      test('onbekende klant of contactpersoon geeft 404', async () => {
+        assert.equal((await vraag('/api/klanten/999999/contacten', {
+          method: 'POST', body: { name: 'Piet' },
+        })).status, 404);
+        assert.equal((await vraag('/api/contacten/999999', { method: 'PATCH', body: { name: 'X' } })).status, 404);
+        assert.equal((await vraag('/api/contacten/999999', { method: 'DELETE' })).status, 404);
+      });
+    });
+
     describe('bezoeken', () => {
       test('een bezoek noteren maakt de klant groen en onthoudt wie het schreef', async () => {
         const { body: k } = await maak();

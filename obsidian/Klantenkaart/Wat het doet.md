@@ -107,10 +107,32 @@ Klik een stip aan en rechts (op gsm: eronder) opent het dossier:
 
 - Bedrijfsnaam, initialen in een gekleurde bol, **laatste bezoek in woorden**
   ("3 weken geleden")
-- Contactpersoon, telefoon, e-mail, adres, BTW-nummer, tags
+- Adres, BTW-nummer, tags
 - Vrije notities over de klant
+- **Contactpersonen**: zoveel als je wil per bedrijf, met functie, telefoon, e-mail
+  en een notitie
 - **De bezoektijdlijn**: per bezoek de datum, welke collega er geweest is, met wie je
   sprak, en waarover het ging
+
+### Meerdere contactpersonen
+
+Een bedrijf is zelden één persoon: de zaakvoerder, de technieker, iemand van de
+boekhouding. Klik op **+ Toevoegen** bij *Contactpersonen*. Alleen de naam is
+verplicht — vaak weet je in het begin niet meer dan dat. Elke contactpersoon heeft een
+potloodje om hem bij te werken.
+
+De eerste in de lijst draagt het label **uit CRM**. Dat is de contactpersoon die uit
+je CRM-export komt, en die wordt bij **elke import ververst**. Wijzig die dus via de
+knop *Bewerken* van de klant, niet door er een tweede fiche naast te zetten — anders
+is je wijziging na de volgende import weg. Wat je zelf toevoegt, raakt de import
+nooit aan.
+
+Zoeken werkt ook op contactpersonen, op naam én functie. Typ "janssens" of
+"technieker" en je vindt het bedrijf terug, ook als je de bedrijfsnaam kwijt bent.
+
+Bij *Bezoek noteren* stelt het veld **Met wie gesproken** de namen voor die de app al
+van die klant kent. Het blijft een gewoon tekstveld: je spreekt wel vaker iemand die
+nog nergens genoteerd staat, en dan hoef je niet eerst een fiche aan te maken.
 
 Een bezoek noteren is vier velden: datum, **bezocht door**, met wie gesproken,
 waarover.

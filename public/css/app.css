@@ -275,12 +275,29 @@ label { display: block; font-size: .82rem; font-weight: 550; color: var(--ink-2)
   font-size: .76rem; color: var(--ink-2);
 }
 
-.notitie, .bezoeken { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line-2); }
-.notitie h3, .bezoeken h3 {
+.notitie, .bezoeken, .contacten { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line-2); }
+.notitie h3, .bezoeken h3, .contacten h3 {
   font-size: .74rem; text-transform: uppercase; letter-spacing: .05em;
   color: var(--ink-3); font-weight: 600;
 }
 .notitie-tekst { margin-top: 7px; white-space: pre-wrap; color: var(--ink-2); font-size: .92rem; }
+
+/* De kop draagt de knop "+ Toevoegen", die rechts hoort te staan. */
+.contacten h3 { display: flex; align-items: baseline; gap: 7px; }
+.contacten h3 .linklike { margin-left: auto; text-transform: none; letter-spacing: 0; font-size: .82rem; }
+
+.contactlijst { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
+.contactlijst li { padding-left: 13px; border-left: 2px solid var(--line); }
+.contact-kop { display: flex; align-items: center; gap: 7px; font-size: .92rem; }
+.contact-regel { margin: 1px 0 0; font-size: .85rem; }
+.contact-regel.muted { font-size: .8rem; }
+/* Wie uit het CRM komt, wordt bij elke import ververst -- dat hoort zichtbaar te
+   zijn, anders typt iemand daar een wijziging in die de volgende import overschrijft. */
+.merk {
+  flex: none; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em;
+  padding: 1px 6px; border-radius: 999px; background: var(--panel-2);
+  border: 1px solid var(--line); color: var(--ink-3);
+}
 
 .bezoeklijst { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 14px; }
 .bezoeklijst li { padding-left: 13px; border-left: 2px solid var(--line); }

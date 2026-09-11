@@ -1,5 +1,5 @@
 import { nu } from './db.js';
-import { validateCustomer, validateVisit, bucketVoor, provincieVoor } from './validate.js';
+import { validateCustomer, validateVisit, validateContact, bucketVoor, provincieVoor } from './validate.js';
 import { Instellingen } from './instellingen.js';
 import { zoekPlaats, spreid } from './plaatsen.js';
 
@@ -79,9 +79,14 @@ export class Store {
     const gebonden = [];
 
     if (q) {
+      // ook op de extra contactpersonen: je weet vaker nog wie je sprak dan hoe het
+      // bedrijf precies heet
       const veldenOmTeZoeken = ['c.name', 'c.contact_name', 'c.city', 'c.postal_code', 'c.street', 'c.notes'];
-      where.push(`(${veldenOmTeZoeken.map((v) => `LOWER(${v}) LIKE ?`).join(' OR ')})`);
-      gebonden.push(...veldenOmTeZoeken.map(() => `%${q.toLowerCase()}%`));
+      const patroon = `%${q.toLowerCase()}%`;
+      where.push(`(${veldenOmTeZoeken.map((v) => `LOWER(${v}) LIKE ?`).join(' OR ')}
+        OR EXISTS (SELECT 1 FROM contacts ctc WHERE ctc.customer_id = c.id
+                   AND (LOWER(ctc.name) LIKE ? OR LOWER(ctc.functie) LIKE ?)))`);
+      gebonden.push(...veldenOmTeZoeken.map(() => patroon), patroon, patroon);
     }
     if (tag) {
       where.push('EXISTS (SELECT 1 FROM customer_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.customer_id = c.id AND t.name = ?)');
@@ -115,6 +120,7 @@ export class Store {
     const tags = (await this.#tagsPerKlant([id])).get(id) ?? [];
     return {
       ...this.#verrijk(rij, tags, await this.instellingen.drempels()),
+      contacten: await this.listContacts(id),
       visits: await this.db.all(
         'SELECT * FROM visits WHERE customer_id = ? ORDER BY visit_date DESC, id DESC', [id]),
     };
@@ -155,6 +161,53 @@ export class Store {
     const weg = (await this.db.run('DELETE FROM customers WHERE id = ?', [id])).changes > 0;
     if (weg) await this.#opschonenTags();
     return weg;
+  }
+
+  // ---------- contactpersonen ----------
+
+  /**
+   * De extra contactpersonen bij een klant, op naam. Het hoofdcontact staat op de
+   * klant zelf (`contact_name`, `phone`, `email`): dat veld komt uit het CRM en wordt
+   * bij elke import ververst. Wat je hier zelf bijzet, blijft van jou -- de import
+   * raakt deze tabel niet aan.
+   */
+  async listContacts(customerId) {
+    return this.db.all(
+      'SELECT * FROM contacts WHERE customer_id = ? ORDER BY LOWER(name)', [customerId]);
+  }
+
+  async addContact(customerId, input) {
+    if (!await this.db.get('SELECT id FROM customers WHERE id = ?', [customerId])) {
+      return { ok: false, notFound: true };
+    }
+    const res = validateContact(input);
+    if (!res.ok) return res;
+    const v = res.value;
+    const id = await this.db.insert(
+      'INSERT INTO contacts(customer_id, name, functie, phone, email, notes, created_at) VALUES(?,?,?,?,?,?,?)',
+      [customerId, v.name, v.functie, v.phone, v.email, v.notes, nu()],
+    );
+    await this.db.run('UPDATE customers SET updated_at = ? WHERE id = ?', [nu(), customerId]);
+    return { ok: true, value: await this.db.get('SELECT * FROM contacts WHERE id = ?', [id]) };
+  }
+
+  async updateContact(id, input) {
+    const bestaand = await this.db.get('SELECT * FROM contacts WHERE id = ?', [id]);
+    if (!bestaand) return { ok: false, notFound: true };
+
+    const res = validateContact({ ...bestaand, ...input });
+    if (!res.ok) return res;
+    const v = res.value;
+    await this.db.run(
+      'UPDATE contacts SET name = ?, functie = ?, phone = ?, email = ?, notes = ? WHERE id = ?',
+      [v.name, v.functie, v.phone, v.email, v.notes, id],
+    );
+    await this.db.run('UPDATE customers SET updated_at = ? WHERE id = ?', [nu(), bestaand.customer_id]);
+    return { ok: true, value: await this.db.get('SELECT * FROM contacts WHERE id = ?', [id]) };
+  }
+
+  async deleteContact(id) {
+    return (await this.db.run('DELETE FROM contacts WHERE id = ?', [id])).changes > 0;
   }
 
   // ---------- bezoeken ----------

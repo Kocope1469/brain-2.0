@@ -79,6 +79,17 @@ CREATE TABLE IF NOT EXISTS visits (
   created_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS contacts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  functie     TEXT NOT NULL DEFAULT '',
+  phone       TEXT NOT NULL DEFAULT '',
+  email       TEXT NOT NULL DEFAULT '',
+  notes       TEXT NOT NULL DEFAULT '',
+  created_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tags (
   id   INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE
@@ -151,6 +162,17 @@ CREATE TABLE IF NOT EXISTS visits (
   created_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS contacts (
+  id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  functie     TEXT NOT NULL DEFAULT '',
+  phone       TEXT NOT NULL DEFAULT '',
+  email       TEXT NOT NULL DEFAULT '',
+  notes       TEXT NOT NULL DEFAULT '',
+  created_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tags (
   id   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name TEXT NOT NULL UNIQUE
@@ -178,6 +200,7 @@ const INDEXEN = [
   'CREATE INDEX IF NOT EXISTS idx_customers_ext ON customers(external_id)',
   'CREATE INDEX IF NOT EXISTS idx_customers_vat ON customers(vat_number)',
   'CREATE INDEX IF NOT EXISTS idx_visits_customer ON visits(customer_id, visit_date DESC)',
+  'CREATE INDEX IF NOT EXISTS idx_contacts_customer ON contacts(customer_id)',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)',
   'CREATE INDEX IF NOT EXISTS idx_pogingen_email ON login_attempts(email, at)',
   'CREATE INDEX IF NOT EXISTS idx_pogingen_ip ON login_attempts(ip, at)',

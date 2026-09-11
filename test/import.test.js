@@ -61,6 +61,26 @@ for (const dialect of dialecten('import')) {
       assert.equal(na.contact_name, 'Peter V.', 'de contactpersoon is wél bijgewerkt');
     });
 
+    /**
+     * Het CRM levert één contactpersoon per klant; die staat op de klant zelf en mag
+     * ververst worden. De contactpersonen die je er in de app zelf bij zet, kent het
+     * CRM niet -- die mogen dus nooit verdwijnen of verdubbelen bij een import.
+     */
+    test('zelf toegevoegde contactpersonen overleven een herimport', async () => {
+      await importeerCsv(EXPORT);
+      const klant = (await store.listCustomers({ q: 'demagro' }))[0];
+      await store.addContact(klant.id, { name: 'An De Clercq', functie: 'boekhouding' });
+      await store.addContact(klant.id, { name: 'Piet Janssens', functie: 'technieker' });
+
+      await importeerCsv(EXPORT.replace('Peter Vandriessche', 'Peter V.'));
+
+      const na = await store.getCustomer(klant.id);
+      assert.deepEqual(na.contacten.map((c) => c.name), ['An De Clercq', 'Piet Janssens'],
+        'niet verdwenen en niet verdubbeld');
+      assert.equal(na.contacten[1].functie, 'technieker');
+      assert.equal(na.contact_name, 'Peter V.', 'het hoofdcontact uit het CRM is wél ververst');
+    });
+
     test('eigen notities, tags en stip blijven van de import gevrijwaard', async () => {
       await importeerCsv(EXPORT);
       const klant = (await store.listCustomers({ q: 'demagro' }))[0];

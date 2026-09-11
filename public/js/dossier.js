@@ -1,12 +1,45 @@
 import { api, probeer } from './api.js';
 import { esc, datum, geleden, vandaag, btwFormaat, initialen, BUCKETLABEL, KLEUREN } from './util.js';
-import { klantFormulier, bezoekFormulier } from './forms.js';
+import { klantFormulier, bezoekFormulier, contactFormulier } from './forms.js';
 
 /* Het potlood als tekening: de tekens ✎ en ✏ vallen per lettertype anders uit,
    van bijna onzichtbaar dun tot een gekleurde emoji. */
 const POTLOOD = `<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
   <path d="M11.6 1.2a1.4 1.4 0 0 1 2 0l1.2 1.2a1.4 1.4 0 0 1 0 2l-.9.9-3.2-3.2zM9.8 3l3.2 3.2-7 7H2.8v-3.2z"/>
 </svg>`;
+
+/**
+ * Alle contactpersonen bij een klant als één lijst. Het hoofdcontact staat op de
+ * klant zelf en komt uit het CRM; de rest heb je er zelf bijgezet. Ze in twee
+ * aparte lijstjes tonen zou de gebruiker laten uitzoeken waar iemand staat -- dat
+ * is ons probleem, niet het zijne.
+ */
+function contactLijst(k) {
+  const uitCrm = k.contact_name || k.phone || k.email
+    ? [{ naam: k.contact_name, functie: '', phone: k.phone, email: k.email, crm: true }]
+    : [];
+  return [...uitCrm, ...(k.contacten ?? []).map((c) => ({
+    id: c.id, naam: c.name, functie: c.functie, phone: c.phone, email: c.email, notes: c.notes,
+  }))];
+}
+
+function contactRij(c) {
+  return `
+    <li>
+      <div class="contact-kop">
+        <strong>${esc(c.naam || '(naam onbekend)')}</strong>
+        ${c.crm ? '<span class="merk">uit CRM</span>' : ''}
+        ${c.functie ? `<span class="muted">${esc(c.functie)}</span>` : ''}
+        ${c.crm ? '' : `<span class="bezoek-knoppen">
+          <button class="btn-icoon" data-bewerk-contact="${c.id}" title="Contactpersoon bewerken" aria-label="Contactpersoon bewerken">${POTLOOD}</button>
+          <button class="btn-icoon" data-weg-contact="${c.id}" title="Contactpersoon verwijderen" aria-label="Contactpersoon verwijderen">✕</button>
+        </span>`}
+      </div>
+      ${c.phone ? `<p class="contact-regel"><a href="tel:${esc(String(c.phone).replace(/\s/g, ''))}">${esc(c.phone)}</a></p>` : ''}
+      ${c.email ? `<p class="contact-regel"><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></p>` : ''}
+      ${c.notes ? `<p class="contact-regel muted">${esc(c.notes)}</p>` : ''}
+    </li>`;
+}
 
 const regel = (label, waarde) => (waarde ? `<div class="veld"><dt>${esc(label)}</dt><dd>${waarde}</dd></div>` : '');
 
@@ -114,13 +147,21 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
     : ''}
 
       <dl class="velden">
-        ${regel('Contact', esc(k.contact_name))}
-        ${regel('Telefoon', k.phone ? `<a href="tel:${esc(k.phone.replace(/\s/g, ''))}">${esc(k.phone)}</a>` : '')}
-        ${regel('E-mail', k.email ? `<a href="mailto:${esc(k.email)}">${esc(k.email)}</a>` : '')}
         ${regel('Adres', adres)}
         ${regel('BTW', k.vat_number ? `<span class="mono">${esc(btwFormaat(k.vat_number))}</span>` : '')}
         ${regel('Tags', k.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join(''))}
       </dl>
+
+      <section class="contacten">
+        <h3>Contactpersonen <span class="muted">(${contactLijst(k).length})</span>
+          <button class="linklike" id="nieuw-contact">+ Toevoegen</button></h3>
+        ${contactLijst(k).length
+    ? `<ul class="contactlijst">${contactLijst(k).map(contactRij).join('')}</ul>`
+    : '<p class="leeg">Nog geen contactpersoon genoteerd.</p>'}
+        ${k.contact_name || k.phone || k.email
+    ? '<p class="terzijde">Wie uit het CRM komt, wordt bij elke import ververst — wijzig die via "Bewerken". Wat je hier zelf bijzet, blijft staan.</p>'
+    : ''}
+      </section>
 
       ${k.notes ? `<section class="notitie"><h3>Notities</h3><div class="notitie-tekst">${esc(k.notes)}</div></section>` : ''}
 
@@ -166,6 +207,19 @@ export async function toonDossier(el, id, { naWijziging, opPlaatsen }) {
     knop.onclick = async () => {
       if (!confirm('Dit bezoek verwijderen?')) return;
       await probeer(() => api.verwijderBezoek(knop.dataset.bezoek), 'Bezoek verwijderd.');
+      await ververs();
+    };
+  }
+  el.querySelector('#nieuw-contact').onclick = () => contactFormulier(k, ververs);
+  for (const knop of el.querySelectorAll('[data-bewerk-contact]')) {
+    knop.onclick = () => contactFormulier(
+      k, ververs, k.contacten.find((c) => String(c.id) === knop.dataset.bewerkContact));
+  }
+  for (const knop of el.querySelectorAll('[data-weg-contact]')) {
+    knop.onclick = async () => {
+      const c = k.contacten.find((x) => String(x.id) === knop.dataset.wegContact);
+      if (!confirm(`"${c?.name ?? 'Deze contactpersoon'}" verwijderen?`)) return;
+      await probeer(() => api.verwijderContact(knop.dataset.wegContact), 'Contactpersoon verwijderd.');
       await ververs();
     };
   }

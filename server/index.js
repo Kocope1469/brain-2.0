@@ -291,6 +291,25 @@ export function createApp({ store, auth, pogingen, instellingen, geocodeImpl = g
         return fail(res, 405, 'Methode niet toegestaan.');
       }
 
+      const contacten = pad.match(/^\/api\/klanten\/(\d+)\/contacten$/);
+      if (contacten && methode === 'POST') {
+        const r = await store.addContact(Number(contacten[1]), await readJson(req));
+        if (r.notFound) return fail(res, 404, 'Deze klant bestaat niet.');
+        return r.ok ? json(res, 201, r.value) : fail(res, 422, r.errors);
+      }
+
+      const eenContact = pad.match(/^\/api\/contacten\/(\d+)$/);
+      if (eenContact && methode === 'PATCH') {
+        const r = await store.updateContact(Number(eenContact[1]), await readJson(req));
+        if (r.notFound) return fail(res, 404, 'Deze contactpersoon bestaat niet.');
+        return r.ok ? json(res, 200, r.value) : fail(res, 422, r.errors);
+      }
+      if (eenContact && methode === 'DELETE') {
+        return await store.deleteContact(Number(eenContact[1]))
+          ? json(res, 200, { verwijderd: true })
+          : fail(res, 404, 'Deze contactpersoon bestaat niet.');
+      }
+
       const bezoek = pad.match(/^\/api\/klanten\/(\d+)\/bezoeken$/);
       if (bezoek && methode === 'POST') {
         const r = await store.addVisit(Number(bezoek[1]), await readJson(req), gebruiker.name || gebruiker.email);

@@ -156,10 +156,15 @@ for (const dialect of dialecten('beveiliging')) {
         const k = await omgeving.store.createCustomer({ name: 'Hoeve Zonder Slot' });
         const b = (await omgeving.store.addVisit(k.value.id, { notes: 'origineel' })).value;
 
+        const c = (await omgeving.store.addContact(k.value.id, { name: 'Piet Janssens' })).value;
+
         for (const [pad, methode] of [
           [`/api/bezoeken/${b.id}`, 'PATCH'],
           [`/api/bezoeken/${b.id}`, 'DELETE'],
           [`/api/klanten/${k.value.id}/bezoeken`, 'POST'],
+          [`/api/klanten/${k.value.id}/contacten`, 'POST'],
+          [`/api/contacten/${c.id}`, 'PATCH'],
+          [`/api/contacten/${c.id}`, 'DELETE'],
         ]) {
           const res = await fetch(basis + pad, {
             method: methode,
@@ -171,6 +176,8 @@ for (const dialect of dialecten('beveiliging')) {
         const na = await omgeving.store.getCustomer(k.value.id);
         assert.equal(na.visits.length, 1, 'het bezoek hoort er nog te zijn');
         assert.equal(na.visits[0].notes, 'origineel', 'en onveranderd');
+        assert.equal(na.contacten.length, 1, 'de contactpersoon hoort er ook nog te zijn');
+        assert.equal(na.contacten[0].name, 'Piet Janssens');
       });
 
       test('een onbekend e-mailadres krijgt dezelfde melding als een fout wachtwoord', async () => {

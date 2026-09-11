@@ -39,6 +39,72 @@ for (const dialect of dialecten('store')) {
       });
     });
 
+    describe('contactpersonen', () => {
+      test('een bedrijf kan er meerdere hebben, op naam gesorteerd', async () => {
+        const k = await maak({ contact_name: 'Johan Dewaegeneer', email: 'johan@jandenul.com' });
+        await store.addContact(k.id, { name: 'Piet Janssens', functie: 'technieker', phone: '0470 11 22 33' });
+        await store.addContact(k.id, { name: 'An De Clercq', functie: 'boekhouding' });
+
+        const dossier = await store.getCustomer(k.id);
+        assert.deepEqual(dossier.contacten.map((c) => c.name), ['An De Clercq', 'Piet Janssens']);
+        assert.equal(dossier.contact_name, 'Johan Dewaegeneer',
+          'het hoofdcontact uit het CRM blijft waar het stond');
+      });
+
+      test('alleen de naam is verplicht', async () => {
+        const k = await maak();
+        assert.equal((await store.addContact(k.id, { name: 'Piet' })).ok, true);
+        const leeg = await store.addContact(k.id, { name: '  ', phone: '0470' });
+        assert.equal(leeg.ok, false);
+        assert.match(leeg.errors[0], /verplicht/);
+      });
+
+      test('een ongeldig e-mailadres wordt geweigerd', async () => {
+        const k = await maak();
+        const r = await store.addContact(k.id, { name: 'Piet', email: 'geen adres' });
+        assert.equal(r.ok, false);
+        assert.equal((await store.getCustomer(k.id)).contacten.length, 0);
+      });
+
+      test('bijwerken raakt alleen aan wat je meestuurt', async () => {
+        const k = await maak();
+        const c = (await store.addContact(k.id,
+          { name: 'Piet Janssens', functie: 'technieker', phone: '0470 11 22 33' })).value;
+
+        await store.updateContact(c.id, { phone: '0470 99 88 77' });
+        const [na] = (await store.getCustomer(k.id)).contacten;
+        assert.equal(na.phone, '0470 99 88 77');
+        assert.equal(na.functie, 'technieker', 'wat je niet meestuurt hoort te blijven staan');
+        assert.equal(na.id, c.id);
+      });
+
+      test('verwijderen laat de klant en de andere contacten met rust', async () => {
+        const k = await maak();
+        const a = (await store.addContact(k.id, { name: 'Piet' })).value;
+        await store.addContact(k.id, { name: 'An' });
+        assert.equal(await store.deleteContact(a.id), true);
+        assert.deepEqual((await store.getCustomer(k.id)).contacten.map((c) => c.name), ['An']);
+        assert.equal(await store.deleteContact(a.id), false, 'twee keer verwijderen is geen fout');
+      });
+
+      test('een klant verwijderen neemt zijn contactpersonen mee', async () => {
+        const k = await maak();
+        await store.addContact(k.id, { name: 'Piet' });
+        await store.deleteCustomer(k.id);
+        assert.equal(Number((await db.get('SELECT COUNT(*) AS n FROM contacts')).n), 0);
+      });
+
+      test('zoeken vindt een klant op de naam of functie van een contactpersoon', async () => {
+        const k = await maak({ name: 'Jan De Nul nv', city: 'Aalst' });
+        await maak({ name: 'Andere Firma', city: 'Gent' });
+        await store.addContact(k.id, { name: 'Piet Janssens', functie: 'technieker' });
+
+        assert.deepEqual((await store.listCustomers({ q: 'janssens' })).map((c) => c.name), ['Jan De Nul nv']);
+        assert.deepEqual((await store.listCustomers({ q: 'TECHNIEKER' })).map((c) => c.name), ['Jan De Nul nv']);
+        assert.equal((await store.listCustomers({ q: 'bestaatniet' })).length, 0);
+      });
+    });
+
     describe('bezoeken bepalen de kleur', () => {
       test('zonder bezoek is een klant blauw, niet rood', async () => {
         assert.equal((await maak()).bucket, 'nieuw');
